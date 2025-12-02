@@ -28,3 +28,8 @@ export const persistor = persistStore(store);
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
 
+// Make store available globally for axios interceptor
+if (typeof window !== 'undefined') {
+  (window as any).store = store;
+}
+

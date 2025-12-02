@@ -7,6 +7,9 @@ import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { store, persistor } from "./store/store";
 import App from "./App";
 import "./index.css";
+import "./styles/custom-table.css";
+import "react-toastify/dist/ReactToastify.css";
+import "./styles/toast.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {

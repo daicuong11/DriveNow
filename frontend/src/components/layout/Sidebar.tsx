@@ -1,115 +1,102 @@
-import { Layout, Menu } from "antd";
-import {
-  DashboardOutlined,
-  CarOutlined,
-  FileTextOutlined,
-  UserOutlined,
-  SettingOutlined,
-} from "@ant-design/icons";
-import { useNavigate, useLocation } from "react-router-dom";
+import { Layout, Menu } from 'antd'
+import { DashboardOutlined, CarOutlined, FileTextOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons'
+import { useNavigate, useLocation } from 'react-router-dom'
 
-const { Sider } = Layout;
+const { Sider } = Layout
 
 const Sidebar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
+  const navigate = useNavigate()
+  const location = useLocation()
 
   const menuItems = [
     {
-      key: "/dashboard",
+      key: '/dashboard',
       icon: <DashboardOutlined />,
-      label: "Dashboard",
+      label: 'Dashboard'
     },
     {
-      key: "vehicles",
+      key: 'vehicles',
       icon: <CarOutlined />,
-      label: "Quản lý Xe",
+      label: 'Quản lý Xe',
       children: [
-        { key: "/vehicles", label: "Danh sách Xe" },
-        { key: "/vehicles/in-out", label: "Xuất/Nhập Bãi" },
-        { key: "/vehicles/maintenance", label: "Bảo dưỡng/Sửa chữa" },
-      ],
+        { key: '/vehicles', label: 'Danh sách Xe' },
+        { key: '/vehicles/in-out', label: 'Xuất/Nhập Bãi' },
+        { key: '/vehicles/maintenance', label: 'Bảo dưỡng/Sửa chữa' }
+      ]
     },
     {
-      key: "rentals",
+      key: 'rentals',
       icon: <FileTextOutlined />,
-      label: "Cho thuê Xe",
+      label: 'Cho thuê Xe',
       children: [
-        { key: "/rentals", label: "Đơn thuê" },
-        { key: "/rentals/promotions", label: "Khuyến mãi" },
-      ],
+        { key: '/rentals', label: 'Đơn thuê' },
+        { key: '/rentals/promotions', label: 'Khuyến mãi' }
+      ]
     },
     {
-      key: "invoices",
+      key: 'invoices',
       icon: <FileTextOutlined />,
-      label: "Hóa đơn",
+      label: 'Hóa đơn',
       children: [
-        { key: "/invoices", label: "Danh sách Hóa đơn" },
-        { key: "/invoices/payments", label: "Thanh toán" },
-      ],
+        { key: '/invoices', label: 'Danh sách Hóa đơn' },
+        { key: '/invoices/payments', label: 'Thanh toán' }
+      ]
     },
     {
-      key: "master-data",
+      key: 'master-data',
       icon: <SettingOutlined />,
-      label: "Danh mục",
+      label: 'Danh mục',
       children: [
-        { key: "/master-data/vehicle-types", label: "Loại xe" },
-        { key: "/master-data/vehicle-brands", label: "Hãng xe" },
-        { key: "/master-data/vehicle-colors", label: "Màu xe" },
-        { key: "/master-data/customers", label: "Khách hàng" },
-        { key: "/master-data/employees", label: "Nhân viên" },
-      ],
+        { key: '/vehicle-types', label: 'Loại xe' },
+        { key: '/vehicle-brands', label: 'Hãng xe' },
+        { key: '/vehicle-colors', label: 'Màu xe' },
+        { key: '/customers', label: 'Khách hàng' },
+        { key: '/employees', label: 'Nhân viên' }
+      ]
     },
     {
-      key: "/users",
+      key: '/users',
       icon: <UserOutlined />,
-      label: "Người dùng",
-    },
-  ];
+      label: 'Người dùng'
+    }
+  ]
 
   const handleMenuClick = ({ key }: { key: string }) => {
-    navigate(key);
-  };
+    navigate(key)
+  }
 
   return (
     <Sider
       collapsible
       width={250}
       style={{
-        overflow: "auto",
-        height: "100vh",
-        position: "fixed",
+        overflow: 'auto',
+        height: '100vh',
+        position: 'fixed',
         left: 0,
         top: 0,
         bottom: 0,
-        zIndex: 1000,
+        zIndex: 1000
       }}
     >
       <div
         style={{
           height: 32,
           margin: 16,
-          background: "rgba(255, 255, 255, 0.3)",
+          background: 'rgba(255, 255, 255, 0.3)',
           borderRadius: 6,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          color: "white",
-          fontWeight: "bold",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'white',
+          fontWeight: 'bold'
         }}
       >
         DriveNow
       </div>
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={[location.pathname]}
-        items={menuItems}
-        onClick={handleMenuClick}
-      />
+      <Menu theme='dark' mode='inline' selectedKeys={[location.pathname]} items={menuItems} onClick={handleMenuClick} />
     </Sider>
-  );
-};
+  )
+}
 
-export default Sidebar;
-
+export default Sidebar

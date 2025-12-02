@@ -45,11 +45,29 @@ Quản lý các loại xe như: Sedan, SUV, Hatchback, Coupe, Convertible, v.v.
   - Thao tác (Actions)
 - **Chức năng:**
   - Tìm kiếm: Search box ở đầu bảng, tìm theo Code, Name
-  - Lọc nâng cao: Modal với các filter:
-    - Trạng thái (Status)
-    - Ngày tạo từ/đến
+  - **Bộ lọc nâng cao:** Hiển thị ngay trên lưới (không phải modal), có nút ẩn/hiện
+    - **Vị trí:** Nằm giữa toolbar và bảng dữ liệu
+    - **Giao diện:** Card với title "Bộ lọc nâng cao", có nút đóng và nút "Xóa bộ lọc"
+    - **Các loại filter:**
+      - **Text input:** Nhập giá trị và nhấn Enter để áp dụng filter (ví dụ: Mã, Tên, Mô tả, Quốc gia)
+      - **Select box:** Chọn giá trị từ dropdown, filter được áp dụng ngay khi chọn (ví dụ: Trạng thái)
+    - **Filter theo cột:**
+      - Mã (Code): Text input, filter theo mã
+      - Tên (Name): Text input, filter theo tên
+      - Trạng thái (Status): Select box với options "Hoạt động" (A) / "Không hoạt động" (I)
+      - Mô tả (Description): Text input, filter theo mô tả
+      - Quốc gia (Country): Text input, chỉ có ở VehicleBrand
+    - **Chức năng:**
+      - Nút ẩn/hiện: Click để ẩn hoặc hiển thị bộ lọc
+      - Nút hiển thị số lượng filter đang active khi bộ lọc bị ẩn
+      - Nút "Xóa bộ lọc": Xóa tất cả filter đang áp dụng
+      - Khi nhấn nút Refresh: Tự động xóa tất cả bộ lọc nâng cao
+      - Filter được gửi về backend qua query params (filterCode, filterName, filterStatus, etc.)
   - Phân trang: 10, 20, 50, 100 records/page
   - Sắp xếp: Click header để sort
+  - **Làm mới dữ liệu:** Nút Refresh (icon ReloadOutlined, background trắng) ở bên trái nút "Thêm mới"
+    - Chức năng: Refresh lưới dữ liệu, xóa bỏ tất cả bộ lọc và tìm kiếm đang áp dụng
+    - Reset về trang đầu tiên, xóa search term, xóa advanced filters, invalidate cache và refetch data
   - Thêm mới: Button "Thêm mới" ở góc trên phải
   - Sửa: Icon edit trong cột Actions
   - Xóa: Icon delete trong cột Actions (confirm dialog)
@@ -107,10 +125,14 @@ Quản lý các hãng xe như: Toyota, Honda, Ford, BMW, Mercedes-Benz, v.v.
 
 ### 3.3. Giao diện
 
+#### 3.3.1. Màn hình danh sách
+
 Tương tự như VehicleType, thêm cột:
 
 - Quốc gia (Country)
 - Logo (hình ảnh thumbnail)
+
+**Chức năng:** Tương tự VehicleType, có nút Refresh để làm mới dữ liệu và xóa bộ lọc
 
 ## 4. DANH MỤC MÀU XE (VehicleColor)
 
@@ -135,9 +157,13 @@ Quản lý màu sắc xe: Đỏ, Xanh, Đen, Trắng, Bạc, v.v.
 
 ### 4.3. Giao diện
 
+#### 4.3.1. Màn hình danh sách
+
 Tương tự VehicleType, thêm:
 
 - Mã màu (HexCode): Color picker
+
+**Chức năng:** Tương tự VehicleType, có nút Refresh để làm mới dữ liệu và xóa bộ lọc
 
 ## 5. DANH MỤC KHÁCH HÀNG (Customer)
 
@@ -178,6 +204,7 @@ Quản lý thông tin khách hàng thuê xe.
   - CMND/CCCD (IdentityCard)
   - Trạng thái (Status)
   - Thao tác (Actions)
+- **Chức năng:** Tương tự VehicleType, có nút Refresh để làm mới dữ liệu và xóa bộ lọc
 
 #### 5.3.2. Màn hình thêm mới/sửa
 
@@ -220,11 +247,15 @@ Quản lý nhân viên của công ty (khác với User - tài khoản đăng nh
 
 ### 6.3. Giao diện
 
+#### 6.3.1. Màn hình danh sách
+
 Tương tự Customer, thêm:
 
 - Chức vụ (Position)
 - Phòng ban (Department)
 - Ngày vào làm (HireDate)
+
+**Chức năng:** Tương tự VehicleType, có nút Refresh để làm mới dữ liệu và xóa bộ lọc
 
 ## 7. CẤU HÌNH HỆ THỐNG (SystemConfig)
 
@@ -256,7 +287,53 @@ Quản lý các cấu hình hệ thống như: Tên công ty, Địa chỉ, Số
 
 ## 8. CHỨC NĂNG CHUNG CHO TẤT CẢ MASTER DATA
 
-### 8.1. Import Excel
+### 8.1. Bộ lọc nâng cao (Advanced Filter)
+
+- **Component:** `AdvancedFilter` - Component tái sử dụng trong `frontend/src/components/common/AdvancedFilter.tsx`
+- **Vị trí:** Hiển thị ngay trên lưới dữ liệu, giữa toolbar và bảng
+- **Giao diện:**
+  - Card với title "Bộ lọc nâng cao"
+  - Layout responsive: Grid layout với Row/Col (xs=24, sm=12, md=8, lg=6)
+  - Nút ẩn/hiện: Button với icon FilterOutlined, hiển thị số lượng filter active khi có filter
+  - Nút đóng: Button với icon CloseOutlined ở góc trên phải
+  - Nút "Xóa bộ lọc": Button để clear tất cả filters
+- **Loại filter:**
+  - **Text input:** 
+    - Nhập giá trị và nhấn Enter để áp dụng filter
+    - Có placeholder hướng dẫn
+    - Có nút clear (allowClear)
+  - **Select box:**
+    - Chọn giá trị từ dropdown
+    - Filter được áp dụng ngay khi chọn (onChange)
+    - Có nút clear (allowClear)
+- **Cấu hình filter:**
+  - Mỗi entity có danh sách filter configs riêng
+  - Filter config bao gồm: key, label, type, options (cho select), placeholder
+- **Tích hợp với backend:**
+  - Filter params được gửi qua query string: `filterCode`, `filterName`, `filterStatus`, `filterCountry`, `filterDescription`
+  - Backend `PagedRequest` đã được mở rộng để nhận các filter params
+  - Backend services xử lý filter theo từng cột (case-insensitive, contains search cho text)
+- **Tương tác với Refresh:**
+  - Khi nhấn nút Refresh, tất cả advanced filters được xóa
+  - Reset về trang đầu tiên sau khi clear filters
+
+### 8.2. Làm mới dữ liệu (Refresh)
+
+- **Vị trí:** Nút Refresh nằm bên trái nút "Thêm mới" trong toolbar
+- **Giao diện:**
+  - Icon: `ReloadOutlined` từ Ant Design Icons
+  - Background: Màu trắng (#fff)
+  - Border: Màu xám nhạt (#d9d9d9)
+  - Không có text, chỉ có icon
+  - Có tooltip: "Làm mới dữ liệu và xóa bộ lọc"
+- **Chức năng:**
+  - Reset search term về rỗng
+  - Reset pagination về trang đầu tiên (giữ nguyên pageSize)
+  - Invalidate query cache để force refetch
+  - Hiển thị loading state khi đang refresh
+- **Component:** `RefreshButton` - Component tái sử dụng trong `frontend/src/components/common/RefreshButton.tsx`
+
+### 8.3. Import Excel
 
 - **Format:** File Excel (.xlsx)
 - **Cột bắt buộc:** Code
@@ -266,18 +343,18 @@ Quản lý các cấu hình hệ thống như: Tên công ty, Địa chỉ, Số
 - **Validation:** Validate dữ liệu trước khi import
 - **Kết quả:** Hiển thị số lượng thành công/thất bại
 
-### 8.2. Export Excel
+### 8.4. Export Excel
 
 - Export tất cả dữ liệu (hoặc theo filter)
 - Format chuẩn, có header
 - Tên file: `{EntityName}_{DateTime}.xlsx`
 
-### 8.3. Tạo bản sao
+### 8.5. Tạo bản sao
 
 - Copy tất cả thông tin (trừ Code - tự generate mới)
 - Mở form với dữ liệu đã copy, cho phép chỉnh sửa
 
-### 8.4. Xóa
+### 8.6. Xóa
 
 - Soft delete (IsDeleted = true)
 - Không xóa nếu đang được sử dụng ở các bảng khác (check foreign key)

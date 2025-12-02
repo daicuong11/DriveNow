@@ -1,10 +1,18 @@
 import { Layout, Dropdown, Avatar, Space } from "antd";
 import { UserOutlined, LogoutOutlined, SettingOutlined } from "@ant-design/icons";
 import type { MenuProps } from "antd";
+import { useAppDispatch, useAppSelector } from "../../store/hooks";
+import { logout } from "../../store/slices/authSlice";
+import { useNavigate } from "react-router-dom";
+import { authService } from "../../services/api/auth.service";
 
 const { Header: AntHeader } = Layout;
 
 const Header = () => {
+  const dispatch = useAppDispatch();
+  const navigate = useNavigate();
+  const { user } = useAppSelector((state) => state.auth);
+
   const items: MenuProps["items"] = [
     {
       key: "profile",
@@ -27,12 +35,19 @@ const Header = () => {
     },
   ];
 
-  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
+  const handleMenuClick: MenuProps["onClick"] = async ({ key }) => {
     if (key === "logout") {
-      // Handle logout
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      window.location.href = "/login";
+      try {
+        const refreshToken = localStorage.getItem("refreshToken");
+        if (refreshToken) {
+          await authService.logout(refreshToken);
+        }
+      } catch (error) {
+        console.error("Logout error:", error);
+      } finally {
+        dispatch(logout());
+        navigate("/login");
+      }
     }
   };
 
@@ -57,7 +72,7 @@ const Header = () => {
         >
           <Space style={{ cursor: "pointer" }}>
             <Avatar icon={<UserOutlined />} />
-            <span>Admin</span>
+            <span>{user?.fullName || user?.username || "User"}</span>
           </Space>
         </Dropdown>
       </Space>
