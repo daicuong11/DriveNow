@@ -1,14 +1,68 @@
-import { Layout, Menu } from 'antd'
-import { DashboardOutlined, CarOutlined, FileTextOutlined, UserOutlined, SettingOutlined } from '@ant-design/icons'
+import { useState, useMemo } from 'react'
+import { Layout, Menu, Input, Button } from 'antd'
+import {
+  DashboardOutlined,
+  CarOutlined,
+  FileTextOutlined,
+  UserOutlined,
+  SettingOutlined,
+  SearchOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined
+} from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
+import Logo from '../common/Logo'
+import '../../styles/sidebar.css'
 
 const { Sider } = Layout
 
-const Sidebar = () => {
+interface SidebarProps {
+  onCollapse?: (collapsed: boolean) => void
+}
+
+interface MenuItem {
+  key: string
+  icon?: React.ReactNode
+  label: React.ReactNode
+  children?: MenuItem[]
+}
+
+const Sidebar = ({ onCollapse }: SidebarProps) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const [collapsed, setCollapsed] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
 
-  const menuItems = [
+  const handleCollapse = () => {
+    const newCollapsed = !collapsed
+    setCollapsed(newCollapsed)
+    onCollapse?.(newCollapsed)
+    // Clear search when collapsing
+    if (newCollapsed) {
+      setSearchTerm('')
+    }
+  }
+
+  // Normalize Vietnamese text for search (remove diacritics)
+  const normalizeText = (text: string): string => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/đ/g, 'd')
+      .replace(/Đ/g, 'D')
+  }
+
+  // Check if search term matches text (fuzzy search)
+  const matchesSearch = (text: string, search: string): boolean => {
+    if (!search.trim()) return true
+    const normalizedText = normalizeText(text)
+    const normalizedSearch = normalizeText(search)
+    // Exact match or contains
+    return normalizedText.includes(normalizedSearch)
+  }
+
+  const allMenuItems: MenuItem[] = [
     {
       key: '/dashboard',
       icon: <DashboardOutlined />,
@@ -51,7 +105,8 @@ const Sidebar = () => {
         { key: '/vehicle-brands', label: 'Hãng xe' },
         { key: '/vehicle-colors', label: 'Màu xe' },
         { key: '/customers', label: 'Khách hàng' },
-        { key: '/employees', label: 'Nhân viên' }
+        { key: '/employees', label: 'Nhân viên' },
+        { key: '/system-configs', label: 'Cấu hình hệ thống' }
       ]
     },
     {
@@ -61,14 +116,45 @@ const Sidebar = () => {
     }
   ]
 
+  // Filter menu items based on search term
+  const filteredMenuItems = useMemo(() => {
+    if (!searchTerm.trim()) return allMenuItems
+
+    return allMenuItems
+      .map((item) => {
+        // Check if parent label matches
+        const parentMatches = matchesSearch(String(item.label), searchTerm)
+
+        // Filter children if they exist
+        if (item.children) {
+          const filteredChildren = item.children.filter((child) => matchesSearch(String(child.label), searchTerm))
+          // Include parent if it matches or if any child matches
+          if (parentMatches || filteredChildren.length > 0) {
+            return {
+              ...item,
+              children: filteredChildren.length > 0 ? filteredChildren : item.children
+            }
+          }
+          return null
+        }
+
+        // For items without children, check if label matches
+        return parentMatches ? item : null
+      })
+      .filter((item): item is MenuItem => item !== null)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchTerm])
+
   const handleMenuClick = ({ key }: { key: string }) => {
     navigate(key)
   }
 
   return (
     <Sider
-      collapsible
+      collapsed={collapsed}
       width={250}
+      collapsedWidth={80}
+      className='custom-sidebar'
       style={{
         overflow: 'auto',
         height: '100vh',
@@ -78,23 +164,101 @@ const Sidebar = () => {
         bottom: 0,
         zIndex: 1000
       }}
+      trigger={null}
     >
+      {/* Logo and Collapse button */}
       <div
         style={{
-          height: 32,
-          margin: 16,
-          background: 'rgba(255, 255, 255, 0.3)',
-          borderRadius: 6,
+          height: collapsed ? 'auto' : '64px',
+          padding: collapsed ? '12px' : '0 16px',
+          minHeight: collapsed ? 'auto' : '64px',
           display: 'flex',
+          justifyContent: collapsed ? 'center' : 'space-between',
           alignItems: 'center',
-          justifyContent: 'center',
-          color: 'white',
-          fontWeight: 'bold'
+          borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
+          gap: '12px',
+          flexDirection: collapsed ? 'column' : 'row'
         }}
       >
-        DriveNow
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            flex: collapsed ? 0 : 1,
+            minWidth: 0,
+            justifyContent: collapsed ? 'center' : 'flex-start'
+          }}
+        >
+          <Logo collapsed={collapsed} />
+        </div>
+        {!collapsed && (
+          <Button
+            type='text'
+            icon={<MenuFoldOutlined />}
+            onClick={handleCollapse}
+            className='sidebar-collapse-btn'
+            style={{
+              color: 'rgba(255, 255, 255, 0.85)',
+              fontSize: '16px',
+              width: '32px',
+              height: '32px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              flexShrink: 0
+            }}
+          />
+        )}
+        {collapsed && (
+          <Button
+            type='text'
+            icon={<MenuUnfoldOutlined />}
+            onClick={handleCollapse}
+            className='sidebar-collapse-btn'
+            style={{
+              color: 'rgba(255, 255, 255, 0.85)',
+              fontSize: '16px',
+              width: '100%',
+              height: '32px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}
+          />
+        )}
       </div>
-      <Menu theme='dark' mode='inline' selectedKeys={[location.pathname]} items={menuItems} onClick={handleMenuClick} />
+
+      {/* Search input */}
+      {!collapsed && (
+        <div
+          style={{
+            margin: '16px',
+            padding: '0'
+          }}
+        >
+          <Input
+            placeholder='Tìm kiếm menu...'
+            prefix={<SearchOutlined style={{ color: 'rgba(255, 255, 255, 0.6)', fontSize: '14px' }} />}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            allowClear
+            className='sidebar-search-input'
+            size='small'
+          />
+        </div>
+      )}
+
+      {/* Menu */}
+      <Menu
+        theme='dark'
+        mode='inline'
+        selectedKeys={[location.pathname]}
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        items={filteredMenuItems as any}
+        onClick={handleMenuClick}
+        inlineCollapsed={collapsed}
+        className='custom-menu'
+      />
     </Sider>
   )
 }

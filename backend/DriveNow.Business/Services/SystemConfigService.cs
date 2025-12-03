@@ -9,26 +9,24 @@ using DriveNow.Common.Constants;
 using DriveNow.Common.Extensions;
 using DriveNow.Common.Helpers;
 using OfficeOpenXml;
-using static DriveNow.Common.Constants.ExcelSheetNames;
 
 namespace DriveNow.Business.Services;
 
-public class VehicleTypeService : IVehicleTypeService
+public class SystemConfigService : ISystemConfigService
 {
-    private readonly IRepository<VehicleType> _repository;
+    private readonly IRepository<SystemConfig> _repository;
     private readonly ApplicationDbContext _context;
 
-    public VehicleTypeService(IRepository<VehicleType> repository, ApplicationDbContext context)
+    public SystemConfigService(IRepository<SystemConfig> repository, ApplicationDbContext context)
     {
         _repository = repository;
         _context = context;
     }
 
-    public async Task<PagedResult<VehicleTypeDto>> GetPagedAsync(PagedRequest request)
+    public async Task<PagedResult<SystemConfigDto>> GetPagedAsync(PagedRequest request)
     {
-        var query = _context.VehicleTypes.Where(v => !v.IsDeleted);
+        var query = _context.SystemConfigs.Where(v => !v.IsDeleted);
 
-        // Normalize search and filter terms first (for diacritic-insensitive search)
         string? normalizedSearchTerm = null;
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -47,33 +45,24 @@ public class VehicleTypeService : IVehicleTypeService
             normalizedFilterName = request.FilterName.Trim().NormalizeForSearch();
         }
 
-        string? normalizedFilterDescription = null;
-        if (!string.IsNullOrWhiteSpace(request.FilterDescription))
-        {
-            normalizedFilterDescription = request.FilterDescription.Trim().NormalizeForSearch();
-        }
-
-        // Apply basic filters that can be translated to SQL
         if (!string.IsNullOrWhiteSpace(request.FilterStatus))
         {
             var filterStatus = request.FilterStatus.Trim();
             query = query.Where(v => v.Status == filterStatus);
         }
 
-        // Materialize query to apply diacritic-insensitive filters in memory
         var allItems = await query.ToListAsync();
 
-        // Apply search filter (case-insensitive, diacritic-insensitive)
         if (!string.IsNullOrWhiteSpace(normalizedSearchTerm))
         {
             allItems = allItems.Where(v =>
                 v.Code.NormalizeForSearch().Contains(normalizedSearchTerm) ||
                 v.Name.NormalizeForSearch().Contains(normalizedSearchTerm) ||
-                (v.Description != null && v.Description.NormalizeForSearch().Contains(normalizedSearchTerm))
+                (v.Description != null && v.Description.NormalizeForSearch().Contains(normalizedSearchTerm)) ||
+                (v.Category != null && v.Category.NormalizeForSearch().Contains(normalizedSearchTerm))
             ).ToList();
         }
 
-        // Apply advanced filters (case-insensitive, diacritic-insensitive)
         if (!string.IsNullOrWhiteSpace(normalizedFilterCode))
         {
             allItems = allItems.Where(v => v.Code.NormalizeForSearch().Contains(normalizedFilterCode)).ToList();
@@ -84,12 +73,6 @@ public class VehicleTypeService : IVehicleTypeService
             allItems = allItems.Where(v => v.Name.NormalizeForSearch().Contains(normalizedFilterName)).ToList();
         }
 
-        if (!string.IsNullOrWhiteSpace(normalizedFilterDescription))
-        {
-            allItems = allItems.Where(v => v.Description != null && v.Description.NormalizeForSearch().Contains(normalizedFilterDescription)).ToList();
-        }
-
-        // Sort
         var sortedItems = request.SortBy?.ToLower() switch
         {
             "code" => request.SortDescending ? allItems.OrderByDescending(v => v.Code) : allItems.OrderBy(v => v.Code),
@@ -101,17 +84,19 @@ public class VehicleTypeService : IVehicleTypeService
         var items = sortedItems
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(v => new VehicleTypeDto
+            .Select(v => new SystemConfigDto
             {
                 Id = v.Id,
                 Code = v.Code,
                 Name = v.Name,
+                Value = v.Value,
                 Description = v.Description,
+                Category = v.Category,
                 Status = v.Status
             })
             .ToList();
 
-        return new PagedResult<VehicleTypeDto>
+        return new PagedResult<SystemConfigDto>
         {
             Data = items,
             TotalCount = totalCount,
@@ -120,71 +105,80 @@ public class VehicleTypeService : IVehicleTypeService
         };
     }
 
-    public async Task<VehicleTypeDto?> GetByIdAsync(int id)
+    public async Task<SystemConfigDto?> GetByIdAsync(int id)
     {
         var entity = await _repository.GetByIdAsync(id);
         if (entity == null) return null;
 
-        return new VehicleTypeDto
+        return new SystemConfigDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
+            Value = entity.Value,
             Description = entity.Description,
+            Category = entity.Category,
             Status = entity.Status
         };
     }
 
-    public async Task<VehicleTypeDto> CreateAsync(CreateVehicleTypeRequest request)
+    public async Task<SystemConfigDto> CreateAsync(CreateSystemConfigRequest request)
     {
-        // Check if code exists
-        if (await _context.VehicleTypes.AnyAsync(v => v.Code == request.Code && !v.IsDeleted))
+        if (await _context.SystemConfigs.AnyAsync(v => v.Code == request.Code && !v.IsDeleted))
         {
             throw new InvalidOperationException($"Mã '{request.Code}' đã tồn tại");
         }
 
-        var entity = new VehicleType
+        var entity = new SystemConfig
         {
             Code = request.Code,
             Name = request.Name,
+            Value = request.Value,
             Description = request.Description,
+            Category = request.Category,
             Status = request.Status,
             CreatedDate = DateTime.UtcNow
         };
 
         await _repository.AddAsync(entity);
 
-        return new VehicleTypeDto
+        return new SystemConfigDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
+            Value = entity.Value,
             Description = entity.Description,
+            Category = entity.Category,
             Status = entity.Status
         };
     }
 
-    public async Task<VehicleTypeDto> UpdateAsync(int id, UpdateVehicleTypeRequest request)
+    public async Task<SystemConfigDto> UpdateAsync(int id, UpdateSystemConfigRequest request)
     {
         var entity = await _repository.GetByIdAsync(id);
         if (entity == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy loại xe với ID {id}");
+            throw new KeyNotFoundException($"Không tìm thấy cấu hình hệ thống với ID {id}");
         }
 
         entity.Name = request.Name;
+        entity.Value = request.Value;
         entity.Description = request.Description;
+        entity.Category = request.Category;
         entity.Status = request.Status;
         entity.ModifiedDate = DateTime.UtcNow;
 
         await _repository.UpdateAsync(entity);
 
-        return new VehicleTypeDto
+        return new SystemConfigDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
+            Value = entity.Value,
             Description = entity.Description,
+            Category = entity.Category,
             Status = entity.Status
         };
     }
@@ -194,41 +188,44 @@ public class VehicleTypeService : IVehicleTypeService
         await _repository.DeleteAsync(id);
     }
 
-    public async Task<VehicleTypeDto> CopyAsync(int id)
+    public async Task<SystemConfigDto> CopyAsync(int id)
     {
         var source = await _repository.GetByIdAsync(id);
         if (source == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy loại xe với ID {id}");
+            throw new KeyNotFoundException($"Không tìm thấy cấu hình hệ thống với ID {id}");
         }
 
-        // Generate new code
         var baseCode = source.Code;
         var newCode = baseCode;
         var counter = 1;
-        while (await _context.VehicleTypes.AnyAsync(v => v.Code == newCode && !v.IsDeleted))
+        while (await _context.SystemConfigs.AnyAsync(v => v.Code == newCode && !v.IsDeleted))
         {
             newCode = $"{baseCode}_{counter}";
             counter++;
         }
 
-        var newEntity = new VehicleType
+        var newEntity = new SystemConfig
         {
             Code = newCode,
             Name = $"{source.Name} (Copy)",
+            Value = source.Value,
             Description = source.Description,
+            Category = source.Category,
             Status = StatusConstants.Active,
             CreatedDate = DateTime.UtcNow
         };
 
         await _repository.AddAsync(newEntity);
 
-        return new VehicleTypeDto
+        return new SystemConfigDto
         {
             Id = newEntity.Id,
             Code = newEntity.Code,
             Name = newEntity.Name,
+            Value = newEntity.Value,
             Description = newEntity.Description,
+            Category = newEntity.Category,
             Status = newEntity.Status
         };
     }
@@ -262,23 +259,20 @@ public class VehicleTypeService : IVehicleTypeService
             return response;
         }
 
-        // Validate sheet name
-        if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.VehicleType))
+        if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.SystemConfig))
         {
             response.Success = false;
-            response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'";
-            errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'" });
+            response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.SystemConfig}'";
+            errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.SystemConfig}'" });
             response.Errors = errors;
             return response;
         }
 
         var rowCount = worksheet.Dimension.Rows;
-        response.TotalRows = rowCount - 1; // Exclude header row
+        response.TotalRows = rowCount - 1;
 
-        // Read headers using helper
         var headers = ExcelImportHelper.ReadHeaders(worksheet, 1);
 
-        // Validate required columns
         if (!headers.ContainsKey("Mã") && !headers.ContainsKey("Code") && !headers.ContainsKey("mã") && !headers.ContainsKey("code"))
         {
             errors.Add(new ImportError { Row = 1, Message = "Thiếu cột 'Mã' hoặc 'Code'", Field = "Code" });
@@ -296,142 +290,120 @@ public class VehicleTypeService : IVehicleTypeService
             return response;
         }
 
-        // Get column indices
-        int codeCol = -1, nameCol = -1, descCol = -1, statusCol = -1;
+        int codeCol = ExcelImportHelper.GetColumnIndex(headers, "Mã", "Code");
+        int nameCol = ExcelImportHelper.GetColumnIndex(headers, "Tên", "Name");
+        int valueCol = ExcelImportHelper.GetColumnIndex(headers, "Giá trị", "Value");
+        int descCol = ExcelImportHelper.GetColumnIndex(headers, "Mô tả", "Description");
+        int categoryCol = ExcelImportHelper.GetColumnIndex(headers, "Nhóm", "Category");
+        int statusCol = ExcelImportHelper.GetColumnIndex(headers, "Trạng thái", "Status");
 
-        if (headers.ContainsKey("Mã"))
-            codeCol = headers["Mã"];
-        else if (headers.ContainsKey("mã"))
-            codeCol = headers["mã"];
-        else if (headers.ContainsKey("Code"))
-            codeCol = headers["Code"];
-        else if (headers.ContainsKey("code"))
-            codeCol = headers["code"];
+        var entitiesToAdd = new List<SystemConfig>();
 
-        if (headers.ContainsKey("Tên"))
-            nameCol = headers["Tên"];
-        else if (headers.ContainsKey("tên"))
-            nameCol = headers["tên"];
-        else if (headers.ContainsKey("Name"))
-            nameCol = headers["Name"];
-        else if (headers.ContainsKey("name"))
-            nameCol = headers["name"];
-
-        if (headers.ContainsKey("Mô tả"))
-            descCol = headers["Mô tả"];
-        else if (headers.ContainsKey("mô tả"))
-            descCol = headers["mô tả"];
-        else if (headers.ContainsKey("Description"))
-            descCol = headers["Description"];
-        else if (headers.ContainsKey("description"))
-            descCol = headers["description"];
-
-        if (headers.ContainsKey("Trạng thái"))
-            statusCol = headers["Trạng thái"];
-        else if (headers.ContainsKey("trạng thái"))
-            statusCol = headers["trạng thái"];
-        else if (headers.ContainsKey("Status"))
-            statusCol = headers["Status"];
-        else if (headers.ContainsKey("status"))
-            statusCol = headers["status"];
-
-        var entitiesToAdd = new List<VehicleType>();
-
-        // Validate all rows first before inserting
         for (int row = 2; row <= rowCount; row++)
         {
             var codeValue = ExcelImportHelper.GetCellValue(worksheet, row, codeCol);
             var nameValue = ExcelImportHelper.GetCellValue(worksheet, row, nameCol);
+            var valueValue = valueCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, valueCol) : null;
             var descValue = descCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, descCol) : null;
+            var categoryValue = categoryCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, categoryCol) : null;
             var statusValue = statusCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, statusCol) : null;
 
-            // Validate required fields
             var codeError = ExcelImportHelper.ValidateRequired(codeValue, "Mã");
             if (codeError != null)
             {
                 errors.Add(new ImportError { Row = row, Message = codeError, Field = "Code" });
+                continue;
             }
 
             var nameError = ExcelImportHelper.ValidateRequired(nameValue, "Tên");
             if (nameError != null)
             {
                 errors.Add(new ImportError { Row = row, Message = nameError, Field = "Name" });
+                continue;
             }
 
-            // Validate max length
-            if (codeValue != null)
+            var codeMaxLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
+            if (codeMaxLengthError != null)
             {
-                var codeLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
-                if (codeLengthError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = codeLengthError, Field = "Code" });
-                }
+                errors.Add(new ImportError { Row = row, Message = codeMaxLengthError, Field = "Code" });
+                continue;
             }
 
-            if (nameValue != null)
+            var nameMaxLengthError = ExcelImportHelper.ValidateMaxLength(nameValue, "Tên", 200);
+            if (nameMaxLengthError != null)
             {
-                var nameLengthError = ExcelImportHelper.ValidateMaxLength(nameValue, "Tên", 255);
-                if (nameLengthError != null)
+                errors.Add(new ImportError { Row = row, Message = nameMaxLengthError, Field = "Name" });
+                continue;
+            }
+
+            if (valueValue != null)
+            {
+                var valueMaxLengthError = ExcelImportHelper.ValidateMaxLength(valueValue, "Giá trị", 1000);
+                if (valueMaxLengthError != null)
                 {
-                    errors.Add(new ImportError { Row = row, Message = nameLengthError, Field = "Name" });
+                    errors.Add(new ImportError { Row = row, Message = valueMaxLengthError, Field = "Value" });
+                    continue;
                 }
             }
 
             if (descValue != null)
             {
-                var descLengthError = ExcelImportHelper.ValidateMaxLength(descValue, "Mô tả", 500);
-                if (descLengthError != null)
+                var descMaxLengthError = ExcelImportHelper.ValidateMaxLength(descValue, "Mô tả", 500);
+                if (descMaxLengthError != null)
                 {
-                    errors.Add(new ImportError { Row = row, Message = descLengthError, Field = "Description" });
-                }
-            }
-
-            // Parse and validate status
-            string status = StatusConstants.Active;
-            if (statusValue != null)
-            {
-                var (statusCode, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
-                if (statusError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
-                }
-                else if (statusCode != null)
-                {
-                    status = statusCode;
-                }
-            }
-
-            // If there are errors for this row, skip to next row
-            if (errors.Any(e => e.Row == row))
-            {
-                continue;
-            }
-
-            // Process code (uppercase)
-            var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
-
-            // Check if code already exists (only if no errors so far)
-            if (!string.IsNullOrWhiteSpace(code))
-            {
-                if (await _context.VehicleTypes.AnyAsync(v => v.Code == code && !v.IsDeleted))
-                {
-                    errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                    errors.Add(new ImportError { Row = row, Message = descMaxLengthError, Field = "Description" });
                     continue;
                 }
             }
 
-            // All validations passed, prepare entity
-            entitiesToAdd.Add(new VehicleType
+            if (categoryValue != null)
+            {
+                var categoryMaxLengthError = ExcelImportHelper.ValidateMaxLength(categoryValue, "Nhóm", 100);
+                if (categoryMaxLengthError != null)
+                {
+                    errors.Add(new ImportError { Row = row, Message = categoryMaxLengthError, Field = "Category" });
+                    continue;
+                }
+            }
+
+            var (parsedStatus, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
+            if (statusError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
+                continue;
+            }
+
+            var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
+            var name = nameValue?.ToString()?.Trim() ?? string.Empty;
+            var value = valueValue?.ToString()?.Trim();
+            var description = descValue?.ToString()?.Trim();
+            var category = categoryValue?.ToString()?.Trim();
+            var status = parsedStatus ?? StatusConstants.Active;
+
+            if (await _context.SystemConfigs.AnyAsync(v => v.Code == code && !v.IsDeleted))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                continue;
+            }
+
+            if (entitiesToAdd.Any(e => e.Code == code))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' bị trùng trong file Excel", Field = "Code" });
+                continue;
+            }
+
+            entitiesToAdd.Add(new SystemConfig
             {
                 Code = code,
-                Name = nameValue?.ToString()?.Trim() ?? string.Empty,
-                Description = descValue?.ToString()?.Trim(),
+                Name = name,
+                Value = value,
+                Description = description,
+                Category = category,
                 Status = status,
                 CreatedDate = DateTime.UtcNow
             });
         }
 
-        // If there are any errors, don't import anything
         if (errors.Any())
         {
             response.Success = false;
@@ -440,10 +412,9 @@ public class VehicleTypeService : IVehicleTypeService
             return response;
         }
 
-        // All validations passed, import all rows
         if (entitiesToAdd.Any())
         {
-            await _context.VehicleTypes.AddRangeAsync(entitiesToAdd);
+            await _context.SystemConfigs.AddRangeAsync(entitiesToAdd);
             await _context.SaveChangesAsync();
             response.SuccessCount = entitiesToAdd.Count;
         }
@@ -455,31 +426,30 @@ public class VehicleTypeService : IVehicleTypeService
 
     public async Task<MemoryStream> ExportExcelAsync(List<int>? ids)
     {
-        List<VehicleType> data;
+        List<SystemConfig> data;
         if (ids == null || ids.Count == 0)
         {
-            // Export all
-            data = await _context.VehicleTypes.Where(v => !v.IsDeleted).ToListAsync();
+            data = await _context.SystemConfigs.Where(v => !v.IsDeleted).ToListAsync();
         }
         else
         {
-            // Export selected
-            data = await _context.VehicleTypes.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
+            data = await _context.SystemConfigs.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
         }
 
-        // Column mapping: Property name -> Header name
         var columnMapping = new Dictionary<string, string>
         {
             { "Code", "Mã" },
             { "Name", "Tên" },
+            { "Value", "Giá trị" },
             { "Description", "Mô tả" },
+            { "Category", "Nhóm" },
             { "Status", "Trạng thái" }
         };
 
         return await ExcelExportHelper.ExportToExcelAsync(
             data: data,
             columnMapping: columnMapping,
-            sheetName: "Loại xe"
+            sheetName: "Cấu hình hệ thống"
         );
     }
 
@@ -490,7 +460,7 @@ public class VehicleTypeService : IVehicleTypeService
             throw new ArgumentException("Danh sách ID không được rỗng");
         }
 
-        var entities = await _context.VehicleTypes
+        var entities = await _context.SystemConfigs
             .Where(v => ids.Contains(v.Id) && !v.IsDeleted)
             .ToListAsync();
 

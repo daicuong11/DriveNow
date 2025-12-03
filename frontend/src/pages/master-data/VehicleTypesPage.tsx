@@ -14,7 +14,7 @@ import CodeInput from '../../components/common/CodeInput'
 import ImportButton from '../../components/common/ImportButton'
 import ExportButton from '../../components/common/ExportButton'
 import ActionSelect from '../../components/common/ActionSelect'
-import ImportErrorModal from '../../components/common/ImportErrorModal'
+import ImportResultModal from '../../components/common/ImportResultModal'
 
 interface VehicleType {
   id: number
@@ -48,8 +48,18 @@ const VehicleTypesPage = () => {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
   const [selectedRows, setSelectedRows] = useState<VehicleType[]>([])
   const [isImporting, setIsImporting] = useState(false)
-  const [importErrors, setImportErrors] = useState<Array<{ row: number; message: string; field?: string }>>([])
-  const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+  const [importResult, setImportResult] = useState<{
+    open: boolean
+    success: boolean
+    message: string
+    totalRows?: number
+    successCount?: number
+    errors?: Array<{ row: number; message: string; field?: string }>
+  }>({
+    open: false,
+    success: false,
+    message: ''
+  })
   const queryClient = useQueryClient()
 
   // Sync debouncedSearchTerm với searchTerm (dùng cho query)
@@ -165,21 +175,6 @@ const VehicleTypesPage = () => {
     }
   })
 
-  // Copy mutation
-  const copyMutation = useMutation({
-    mutationFn: async (id: number) => {
-      const response = await api.post(`/VehicleTypes/${id}/copy`)
-      return response.data
-    },
-    onSuccess: () => {
-      showSuccess('Tạo bản sao loại xe thành công!')
-      queryClient.invalidateQueries({ queryKey: ['vehicleTypes'] })
-    },
-    onError: () => {
-      showError('Tạo bản sao thất bại. Vui lòng thử lại!')
-    }
-  })
-
   const handleAdd = () => {
     setEditingId(null)
     form.resetFields()
@@ -196,8 +191,15 @@ const VehicleTypesPage = () => {
     deleteMutation.mutate(id)
   }
 
-  const handleCopy = (id: number) => {
-    copyMutation.mutate(id)
+  const handleCopy = (record: VehicleType) => {
+    // Mở popup tạo mới với dữ liệu của record được copy (trừ Code)
+    setEditingId(null)
+    const { code, ...restData } = record
+    form.setFieldsValue({
+      ...restData,
+      code: '' // Bỏ trống Code
+    })
+    setIsModalOpen(true)
   }
 
   const handleRefresh = () => {
@@ -266,27 +268,50 @@ const VehicleTypesPage = () => {
       })
 
       if (response.data.success) {
-        showSuccess('Import thành công!')
+        // Show success result modal
+        setImportResult({
+          open: true,
+          success: true,
+          message: response.data.data?.message || response.data.message || 'Import thành công!',
+          totalRows: response.data.data?.totalRows,
+          successCount: response.data.data?.successCount,
+          errors: []
+        })
         queryClient.invalidateQueries({ queryKey: ['vehicleTypes'] })
         setSelectedRowKeys([])
         setSelectedRows([])
       } else {
-        // If there are validation errors
-        if (response.data.errors && Array.isArray(response.data.errors)) {
-          setImportErrors(response.data.errors)
-          setIsErrorModalOpen(true)
-          throw new Error('Import thất bại do lỗi validation')
-        } else {
-          throw new Error(response.data.message || 'Import thất bại')
-        }
+        // Show error result modal
+        setImportResult({
+          open: true,
+          success: false,
+          message: response.data.message || 'Import thất bại',
+          totalRows: response.data.totalRows,
+          successCount: 0,
+          errors: response.data.errors || []
+        })
+        throw new Error('Import thất bại do lỗi validation')
       }
     } catch (error: any) {
       // Check if error response contains validation errors
       if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-        setImportErrors(error.response.data.errors)
-        setIsErrorModalOpen(true)
+        setImportResult({
+          open: true,
+          success: false,
+          message: error.response?.data?.message || 'Import thất bại',
+          totalRows: error.response?.data?.totalRows,
+          successCount: 0,
+          errors: error.response.data.errors
+        })
       } else {
-        showError(error.response?.data?.message || error.message || 'Import thất bại!')
+        setImportResult({
+          open: true,
+          success: false,
+          message: error.response?.data?.message || error.message || 'Import thất bại!',
+          totalRows: 0,
+          successCount: 0,
+          errors: []
+        })
       }
       throw error
     } finally {
@@ -371,7 +396,7 @@ const VehicleTypesPage = () => {
       render: (_, record) => (
         <Space>
           <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record.id)} />
+          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />
           <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
             <Button type='link' danger icon={<DeleteOutlined />} />
           </Popconfirm>
@@ -382,7 +407,7 @@ const VehicleTypesPage = () => {
 
   return (
     <div>
-      <div className='flex justify-between items-center mb-4'>
+      <div className='flex items-center justify-between mb-4'>
         <h1 className='text-2xl font-bold'>Quản lý Loại xe</h1>
         <Space>
           <Input
@@ -408,7 +433,7 @@ const VehicleTypesPage = () => {
           <ExportButton
             selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
             apiEndpoint='/VehicleTypes/export'
-            filename='loai-xe'
+            filename='VehicleType'
             loading={false}
             disabled={false}
           />
@@ -485,12 +510,15 @@ const VehicleTypesPage = () => {
         </Form>
       </Modal>
 
-      <ImportErrorModal
-        open={isErrorModalOpen}
-        errors={importErrors}
+      <ImportResultModal
+        open={importResult.open}
+        success={importResult.success}
+        message={importResult.message}
+        totalRows={importResult.totalRows}
+        successCount={importResult.successCount}
+        errors={importResult.errors}
         onClose={() => {
-          setIsErrorModalOpen(false)
-          setImportErrors([])
+          setImportResult({ ...importResult, open: false })
         }}
       />
     </div>

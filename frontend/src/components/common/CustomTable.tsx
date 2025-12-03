@@ -29,28 +29,25 @@ const CustomTable = <T extends Record<string, any>>({
 
   const getColumnSearchProps = (dataIndex: string, title: string): Partial<ColumnType<T>> => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-      <div style={{ padding: 8 }} onKeyDown={(e) => e.stopPropagation()}>
-        <Input
-          placeholder={`Tìm kiếm ${title.toLowerCase()}...`}
-          value={selectedKeys?.[0]}
-          onChange={(e) => {
-            setSelectedKeys(e.target.value ? [e.target.value] : [])
-          }}
-          onPressEnter={() => {
-            confirm()
-            if (onFilterChange) {
-              onFilterChange({
-                ...filteredColumns,
-                [dataIndex]: selectedKeys?.[0] || undefined
-              })
-            }
-          }}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button
-            type='primary'
-            onClick={() => {
+      <div
+        className='custom-filter-dropdown'
+        style={{ padding: 0 }}
+        onKeyDown={(e) => e.stopPropagation()}
+        data-column-title={`🔍 Tìm kiếm: ${title}`}
+      >
+        <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(37, 99, 235, 0.1)', marginBottom: '12px' }}>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: '#2563eb', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+            🔍 Tìm kiếm: {title}
+          </div>
+        </div>
+        <div style={{ padding: '0 16px 16px' }}>
+          <Input
+            placeholder={`Nhập từ khóa tìm kiếm...`}
+            value={selectedKeys?.[0]}
+            onChange={(e) => {
+              setSelectedKeys(e.target.value ? [e.target.value] : [])
+            }}
+            onPressEnter={() => {
               confirm()
               if (onFilterChange) {
                 onFilterChange({
@@ -59,32 +56,56 @@ const CustomTable = <T extends Record<string, any>>({
                 })
               }
             }}
-            icon={<SearchOutlined />}
-            size='small'
-            style={{ width: 90 }}
-          >
-            Tìm kiếm
-          </Button>
-          <Button
-            onClick={() => {
-              if (clearFilters) {
-                clearFilters()
-                if (onFilterChange) {
-                  const newFilters = { ...filteredColumns }
-                  delete newFilters[dataIndex]
-                  onFilterChange(newFilters)
+            prefix={<SearchOutlined style={{ color: '#2563eb' }} />}
+            style={{ marginBottom: 12 }}
+          />
+          <Space style={{ width: '100%', justifyContent: 'flex-end', marginTop: 8 }}>
+            <Button
+              onClick={() => {
+                if (clearFilters) {
+                  clearFilters()
+                  if (onFilterChange) {
+                    const newFilters = { ...filteredColumns }
+                    delete newFilters[dataIndex]
+                    onFilterChange(newFilters)
+                  }
                 }
-              }
-            }}
-            size='small'
-            style={{ width: 90 }}
-          >
-            Xóa
-          </Button>
-        </Space>
+              }}
+              size='small'
+              style={{ minWidth: 80 }}
+            >
+              Xóa
+            </Button>
+            <Button
+              type='primary'
+              onClick={() => {
+                confirm()
+                if (onFilterChange) {
+                  onFilterChange({
+                    ...filteredColumns,
+                    [dataIndex]: selectedKeys?.[0] || undefined
+                  })
+                }
+              }}
+              icon={<SearchOutlined />}
+              size='small'
+              style={{ minWidth: 100 }}
+            >
+              Tìm kiếm
+            </Button>
+          </Space>
+        </div>
       </div>
     ),
-    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    filterIcon: (filtered: boolean) => (
+      <SearchOutlined
+        style={{
+          color: filtered ? '#fff' : 'rgba(255, 255, 255, 0.85)',
+          fontSize: filtered ? '16px' : '14px',
+          transition: 'all 0.3s ease'
+        }}
+      />
+    ),
     onFilter: (value: any, record: T) => {
       const recordValue = record[dataIndex]
       if (recordValue == null) return false
@@ -103,7 +124,15 @@ const CustomTable = <T extends Record<string, any>>({
           const recordValue = record[dataIndex]
           return recordValue === value
         },
-        filterIcon: (filtered: boolean) => <FilterOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
+        filterIcon: (filtered: boolean) => (
+          <FilterOutlined
+            style={{
+              color: filtered ? '#fff' : 'rgba(255, 255, 255, 0.85)',
+              fontSize: filtered ? '16px' : '14px',
+              transition: 'all 0.3s ease'
+            }}
+          />
+        )
       }
     }
     return {}

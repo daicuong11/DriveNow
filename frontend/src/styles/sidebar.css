@@ -1,0 +1,348 @@
+/* Sidebar Custom Styles */
+.custom-sidebar.ant-layout-sider {
+  background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.15) !important;
+  overflow: hidden !important;
+}
+
+/* Sidebar khi collapsed - đảm bảo không tràn */
+.custom-sidebar.ant-layout-sider-collapsed {
+  overflow: hidden !important;
+}
+
+.custom-sidebar.ant-layout-sider-collapsed .ant-menu {
+  overflow: hidden !important;
+}
+
+/* Menu Custom Styles */
+.custom-sidebar .ant-menu-dark,
+.custom-menu.ant-menu-dark {
+  background: transparent !important;
+  border-right: none !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-item,
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-title,
+.custom-menu.ant-menu-dark .ant-menu-item,
+.custom-menu.ant-menu-dark .ant-menu-submenu-title {
+  margin: 4px 12px !important;
+  border-radius: 10px !important;
+  height: 44px !important;
+  line-height: 44px !important;
+  padding-left: 16px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  color: rgba(255, 255, 255, 0.75) !important;
+  font-weight: 500 !important;
+  position: relative !important;
+  overflow: hidden !important;
+}
+
+/* Menu Item Hover */
+.custom-sidebar .ant-menu-dark .ant-menu-item:hover,
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-title:hover,
+.custom-menu.ant-menu-dark .ant-menu-item:hover,
+.custom-menu.ant-menu-dark .ant-menu-submenu-title:hover {
+  background: rgba(14, 165, 233, 0.15) !important;
+  color: #fff !important;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2);
+}
+
+/* Menu Item Active */
+.custom-sidebar .ant-menu-dark .ant-menu-item-selected,
+.custom-menu.ant-menu-dark .ant-menu-item-selected {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(30, 58, 138, 0.25) 100%) !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+  border-left: 3px solid #0ea5e9 !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-item-selected::before,
+.custom-menu.ant-menu-dark .ant-menu-item-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #0ea5e9 0%, #1e3a8a 100%);
+  border-radius: 0 3px 3px 0;
+}
+
+/* Menu Item Icon */
+.custom-sidebar .ant-menu-dark .ant-menu-item-icon,
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-title .ant-menu-submenu-arrow,
+.custom-menu.ant-menu-dark .ant-menu-item-icon,
+.custom-menu.ant-menu-dark .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  font-size: 18px !important;
+  transition: all 0.3s ease !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-item:hover .ant-menu-item-icon,
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-title:hover .ant-menu-item-icon,
+.custom-menu.ant-menu-dark .ant-menu-item:hover .ant-menu-item-icon,
+.custom-menu.ant-menu-dark .ant-menu-submenu-title:hover .ant-menu-item-icon {
+  transform: scale(1.1);
+  color: #0ea5e9;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-item-selected .ant-menu-item-icon,
+.custom-menu.ant-menu-dark .ant-menu-item-selected .ant-menu-item-icon {
+  color: #0ea5e9 !important;
+}
+
+/* Submenu */
+.custom-sidebar .ant-menu-dark .ant-menu-submenu,
+.custom-menu.ant-menu-dark .ant-menu-submenu {
+  margin: 4px 12px !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-title,
+.custom-menu.ant-menu-dark .ant-menu-submenu-title {
+  border-radius: 10px !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title,
+.custom-menu.ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title {
+  background: rgba(14, 165, 233, 0.1) !important;
+  color: #fff !important;
+}
+
+/* Submenu Container - Background khi expand */
+.custom-sidebar .ant-menu-dark .ant-menu-submenu .ant-menu,
+.custom-menu.ant-menu-dark .ant-menu-submenu .ant-menu {
+  background: rgba(15, 23, 42, 0.4) !important;
+  border-radius: 8px !important;
+  margin: 8px 0 !important;
+  padding: 4px 0 !important;
+  border: 1px solid rgba(14, 165, 233, 0.1) !important;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Submenu Items */
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-inline > .ant-menu-submenu-title .ant-menu-submenu-arrow,
+.custom-menu.ant-menu-dark .ant-menu-submenu-inline > .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  color: rgba(255, 255, 255, 0.65) !important;
+  transition: transform 0.3s ease !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title .ant-menu-submenu-arrow,
+.custom-menu.ant-menu-dark .ant-menu-submenu-open > .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  color: #0ea5e9 !important;
+  transform: rotate(90deg) !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu .ant-menu-item,
+.custom-menu.ant-menu-dark .ant-menu-submenu .ant-menu-item {
+  margin: 2px 8px !important;
+  padding-left: 40px !important;
+  background: transparent !important;
+  border-radius: 8px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu .ant-menu-item:hover,
+.custom-menu.ant-menu-dark .ant-menu-submenu .ant-menu-item:hover {
+  background: rgba(14, 165, 233, 0.15) !important;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.2) !important;
+}
+
+.custom-sidebar .ant-menu-dark .ant-menu-submenu .ant-menu-item-selected,
+.custom-menu.ant-menu-dark .ant-menu-submenu .ant-menu-item-selected {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.25) 0%, rgba(30, 58, 138, 0.25) 100%) !important;
+  border-left: 3px solid #0ea5e9 !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+}
+
+/* Collapsed Menu */
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item,
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title {
+  padding: 0 !important;
+  margin: 6px auto !important;
+  width: 40px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 10px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  max-width: 40px !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item:hover,
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title:hover,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item:hover,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title:hover {
+  background: rgba(14, 165, 233, 0.2) !important;
+  transform: scale(1.05) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.3) !important;
+  max-width: 40px !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-icon,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-icon {
+  margin: 0 !important;
+  font-size: 18px !important;
+  transition: all 0.3s ease !important;
+  flex-shrink: 0 !important;
+}
+
+/* Đảm bảo menu item content không tràn */
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item .ant-menu-title-content,
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-title-content,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item .ant-menu-title-content,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-title-content {
+  display: none !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item:hover .ant-menu-item-icon,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item:hover .ant-menu-item-icon {
+  transform: scale(1.15);
+  color: #0ea5e9 !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-selected,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-selected {
+  background: linear-gradient(135deg, #0ea5e9 0%, #1e3a8a 100%) !important;
+  box-shadow: 0 2px 8px rgba(14, 165, 233, 0.4) !important;
+  border-left: none !important;
+  transform: scale(1.05) !important;
+  max-width: 40px !important;
+}
+
+/* Ẩn submenu khi collapsed */
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu .ant-menu,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu .ant-menu {
+  display: none !important;
+}
+
+/* Đảm bảo submenu arrow không hiển thị khi collapsed */
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-submenu-arrow,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-submenu-title .ant-menu-submenu-arrow {
+  display: none !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-selected::before,
+.custom-menu.ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-selected::before {
+  display: none !important;
+}
+
+.custom-sidebar .ant-menu-dark.ant-menu-inline-collapsed .ant-menu-item-selected .ant-menu-item-icon {
+  color: #fff !important;
+  transform: scale(1.1);
+}
+
+/* Scrollbar */
+.custom-sidebar.ant-layout-sider::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-sidebar.ant-layout-sider::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 3px;
+}
+
+.custom-sidebar.ant-layout-sider::-webkit-scrollbar-thumb {
+  background: rgba(14, 165, 233, 0.3);
+  border-radius: 3px;
+}
+
+.custom-sidebar.ant-layout-sider::-webkit-scrollbar-thumb:hover {
+  background: rgba(14, 165, 233, 0.5);
+}
+
+/* Collapse Button - Custom ở trên logo */
+.sidebar-collapse-btn {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border-radius: 8px !important;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(14, 165, 233, 0.2) !important;
+  color: #0ea5e9 !important;
+  transform: scale(1.05) !important;
+}
+
+.sidebar-collapse-btn:active {
+  transform: scale(0.95) !important;
+}
+
+/* Search Input */
+.sidebar-search-input {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebar-search-input.ant-input-affix-wrapper {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border: 1px solid rgba(255, 255, 255, 0.2) !important;
+  border-radius: 8px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.sidebar-search-input.ant-input-affix-wrapper:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(14, 165, 233, 0.4) !important;
+}
+
+.sidebar-search-input.ant-input-affix-wrapper-focused {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: #0ea5e9 !important;
+  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2) !important;
+}
+
+.sidebar-search-input .ant-input {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  font-size: 13px !important;
+  padding: 4px 8px !important;
+  height: 28px !important;
+  line-height: 20px !important;
+}
+
+.sidebar-search-input .ant-input::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+  font-size: 13px !important;
+}
+
+.sidebar-search-input .ant-input-prefix {
+  margin-right: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sidebar-search-input .ant-input-suffix {
+  margin-left: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.sidebar-search-input .ant-input-clear-icon {
+  color: rgba(255, 255, 255, 0.6) !important;
+  font-size: 12px !important;
+}
+
+.sidebar-search-input .ant-input-clear-icon:hover {
+  color: #fff !important;
+}
+
+/* Collapse Button - Legacy (nếu còn dùng) */
+.custom-sidebar .ant-layout-sider-trigger {
+  background: rgba(14, 165, 233, 0.1) !important;
+  border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: all 0.3s ease !important;
+}
+
+.custom-sidebar .ant-layout-sider-trigger:hover {
+  background: rgba(14, 165, 233, 0.2) !important;
+  color: #0ea5e9 !important;
+}

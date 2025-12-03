@@ -26,7 +26,7 @@ import CodeInput from '../../components/common/CodeInput'
 import ImportButton from '../../components/common/ImportButton'
 import ExportButton from '../../components/common/ExportButton'
 import ActionSelect from '../../components/common/ActionSelect'
-import ImportErrorModal from '../../components/common/ImportErrorModal'
+import ImportResultModal from '../../components/common/ImportResultModal'
 ```
 
 ### 3. Interface Definitions
@@ -73,8 +73,18 @@ const [filterResetTrigger, setFilterResetTrigger] = useState(0)
 const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
 const [selectedRows, setSelectedRows] = useState<{EntityName}[]>([])
 const [isImporting, setIsImporting] = useState(false)
-const [importErrors, setImportErrors] = useState<Array<{ row: number; message: string; field?: string }>>([])
-const [isErrorModalOpen, setIsErrorModalOpen] = useState(false)
+const [importResult, setImportResult] = useState<{
+  open: boolean
+  success: boolean
+  message: string
+  totalRows?: number
+  successCount?: number
+  errors?: Array<{ row: number; message: string; field?: string }>
+}>({
+  open: false,
+  success: false,
+  message: ''
+})
 const queryClient = useQueryClient()
 ```
 
@@ -346,27 +356,50 @@ const handleImport = async (file: File) => {
     })
 
     if (response.data.success) {
-      showSuccess('Import thành công!')
+      // Show success result modal
+      setImportResult({
+        open: true,
+        success: true,
+        message: response.data.data?.message || response.data.message || 'Import thành công!',
+        totalRows: response.data.data?.totalRows,
+        successCount: response.data.data?.successCount,
+        errors: []
+      })
       queryClient.invalidateQueries({ queryKey: ['{entityName}s'] })
       setSelectedRowKeys([])
       setSelectedRows([])
     } else {
-      // If there are validation errors
-      if (response.data.errors && Array.isArray(response.data.errors)) {
-        setImportErrors(response.data.errors)
-        setIsErrorModalOpen(true)
-        throw new Error('Import thất bại do lỗi validation')
-      } else {
-        throw new Error(response.data.message || 'Import thất bại')
-      }
+      // Show error result modal
+      setImportResult({
+        open: true,
+        success: false,
+        message: response.data.message || 'Import thất bại',
+        totalRows: response.data.totalRows,
+        successCount: 0,
+        errors: response.data.errors || []
+      })
+      throw new Error('Import thất bại do lỗi validation')
     }
   } catch (error: any) {
     // Check if error response contains validation errors
     if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
-      setImportErrors(error.response.data.errors)
-      setIsErrorModalOpen(true)
+      setImportResult({
+        open: true,
+        success: false,
+        message: error.response?.data?.message || 'Import thất bại',
+        totalRows: error.response?.data?.totalRows,
+        successCount: 0,
+        errors: error.response.data.errors
+      })
     } else {
-      showError(error.response?.data?.message || error.message || 'Import thất bại!')
+      setImportResult({
+        open: true,
+        success: false,
+        message: error.response?.data?.message || error.message || 'Import thất bại!',
+        totalRows: 0,
+        successCount: 0,
+        errors: []
+      })
     }
     throw error
   } finally {
@@ -495,11 +528,11 @@ return (
           style={{ width: 250 }}
         />
         <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-        <ImportButton onImport={handleImport} loading={isImporting} />
+        <ImportButton onImport={handleImport} loading={isImporting} title='Import Excel' />
         <ExportButton
           selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
           apiEndpoint='/{EntityName}s/export'
-          filename='{entity-name}' // kebab-case, e.g., 'loai-xe'
+          filename='{EntityName}' // PascalCase, e.g., 'VehicleType', 'VehicleBrand'
           loading={false}
           disabled={false}
         />
@@ -580,13 +613,16 @@ return (
       </Form>
     </Modal>
 
-    {/* Import Error Modal */}
-    <ImportErrorModal
-      open={isErrorModalOpen}
-      errors={importErrors}
+    {/* Import Result Modal */}
+    <ImportResultModal
+      open={importResult.open}
+      success={importResult.success}
+      message={importResult.message}
+      totalRows={importResult.totalRows}
+      successCount={importResult.successCount}
+      errors={importResult.errors}
       onClose={() => {
-        setIsErrorModalOpen(false)
-        setImportErrors([])
+        setImportResult({ ...importResult, open: false })
       }}
     />
   </div>
@@ -601,10 +637,11 @@ return (
 - `CustomTable` - `frontend/src/components/common/CustomTable.tsx`
 - `StatusSelect` - `frontend/src/components/common/StatusSelect.tsx`
 - `CodeInput` - `frontend/src/components/common/CodeInput.tsx`
-- `ImportButton` - `frontend/src/components/common/ImportButton.tsx`
+- `ImportButton` - `frontend/src/components/common/ImportButton.tsx` (mở ImportModal)
+- `ImportModal` - `frontend/src/components/common/ImportModal.tsx` (popup với drag & drop, progress bar)
+- `ImportResultModal` - `frontend/src/components/common/ImportResultModal.tsx` (hiển thị kết quả import)
 - `ExportButton` - `frontend/src/components/common/ExportButton.tsx`
 - `ActionSelect` - `frontend/src/components/common/ActionSelect.tsx`
-- `ImportErrorModal` - `frontend/src/components/common/ImportErrorModal.tsx`
 
 ### Required Hooks
 - `useDebounce` - `frontend/src/hooks/useDebounce.ts`
@@ -640,16 +677,25 @@ return (
    - Enum fields: Sử dụng `StatusSelect` hoặc custom Select
 
 6. **Import/Export:**
-   - Import: Gửi file qua `FormData`, handle validation errors từ backend
-   - Export: Gửi list IDs (empty = export all), download file từ response blob
-   - Filename format: `{entity-name}_Export.xlsx` (kebab-case)
+   - **Import:**
+     - Sử dụng `ImportButton` để mở `ImportModal` (popup với drag & drop upload)
+     - `ImportModal` có progress bar khi upload, nút Import và Hủy bỏ
+     - Khi nhấn Import: đóng modal, lazy loading, chờ import xong
+     - Sau khi import xong: mở `ImportResultModal` hiển thị kết quả (thành công/thất bại, số dòng, chi tiết lỗi)
+     - Gửi file qua `FormData` với `Content-Type: multipart/form-data`
+     - Handle validation errors từ backend và hiển thị trong `ImportResultModal`
+   - **Export:**
+     - Gửi list IDs (empty = export all), download file từ response blob
+     - Filename format: `{EntityName}_Export.xlsx` (PascalCase, VD: `VehicleType_Export.xlsx`)
+     - ExportButton tự động parse filename từ Content-Disposition header (hỗ trợ UTF-8 encoding)
 
 7. **Notifications:**
    - Sử dụng `react-toastify` qua `showSuccess`, `showError`, `showWarning`
    - Không sử dụng Ant Design `message` component
 
 8. **Error Handling:**
-   - Import errors: Hiển thị trong `ImportErrorModal`
+   - Import errors: Hiển thị trong `ImportResultModal` với chi tiết lỗi (row, message, field)
+   - ImportResultModal hiển thị: success/error status, message, totalRows, successCount, danh sách errors
    - API errors: Hiển thị message từ `error.response?.data?.message`
    - Fallback message nếu không có error message
 

@@ -53,26 +53,27 @@ const Header = () => {
 
   return (
     <AntHeader
+      className="custom-header"
       style={{
-        padding: "0 24px",
-        background: "#fff",
+        padding: "0 32px",
         display: "flex",
         justifyContent: "space-between",
         alignItems: "center",
-        boxShadow: "0 2px 8px rgba(0,0,0,0.1)",
+        height: 64
       }}
     >
-      <div style={{ fontSize: 18, fontWeight: "bold" }}>
+      <div className="custom-header-title">
         Ứng dụng Quản lý Cho thuê Xe hơi
       </div>
       <Space>
         <Dropdown
           menu={{ items, onClick: handleMenuClick }}
           placement="bottomRight"
+          overlayClassName="custom-dropdown-menu"
         >
-          <Space style={{ cursor: "pointer" }}>
-            <Avatar icon={<UserOutlined />} />
-            <span>{user?.fullName || user?.username || "User"}</span>
+          <Space className="custom-user-dropdown" style={{ cursor: "pointer" }} size="small">
+            <Avatar className="custom-user-avatar" icon={<UserOutlined />} size={32} />
+            <span className="custom-user-name">{user?.fullName || user?.username || "User"}</span>
           </Space>
         </Dropdown>
       </Space>

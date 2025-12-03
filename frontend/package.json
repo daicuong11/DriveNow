@@ -20,6 +20,7 @@
     "@tanstack/react-query-devtools": "^5.90.2",
     "antd": "^5.27.6",
     "axios": "^1.13.0",
+    "dayjs": "^1.11.13",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-redux": "^9.2.0",

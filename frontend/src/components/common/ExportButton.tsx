@@ -31,9 +31,16 @@ const ExportButton = ({ selectedIds, apiEndpoint, filename, loading = false, dis
       let downloadFilename = `${filename}_Export.xlsx`
       const contentDisposition = response.headers['content-disposition']
       if (contentDisposition) {
-        const filenameMatch = contentDisposition.match(/filename="?([^"]+)"?/i)
+        // Try to extract filename from Content-Disposition header
+        // Support both formats: filename="..." and filename*=UTF-8''...
+        const filenameMatch = contentDisposition.match(/filename[^;=\n]*=((['"]).*?\2|[^;\n]*)/i)
         if (filenameMatch && filenameMatch[1]) {
-          downloadFilename = filenameMatch[1]
+          let extractedFilename = filenameMatch[1].replace(/['"]/g, '')
+          // Decode UTF-8 encoded filename if present
+          if (extractedFilename.startsWith("UTF-8''")) {
+            extractedFilename = decodeURIComponent(extractedFilename.replace("UTF-8''", ''))
+          }
+          downloadFilename = extractedFilename || downloadFilename
         }
       }
 

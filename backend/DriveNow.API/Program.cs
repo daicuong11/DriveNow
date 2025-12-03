@@ -63,6 +63,10 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IAuthService, DriveNow.Business.Services.AuthService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleTypeService, DriveNow.Business.Services.VehicleTypeService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleBrandService, DriveNow.Business.Services.VehicleBrandService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleColorService, DriveNow.Business.Services.VehicleColorService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.ICustomerService, DriveNow.Business.Services.CustomerService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IEmployeeService, DriveNow.Business.Services.EmployeeService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.ISystemConfigService, DriveNow.Business.Services.SystemConfigService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IDashboardService, DriveNow.Business.Services.DashboardService>();
 
 // Register Repositories

@@ -1,10 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
-import { Button, Space, Input, Modal, Form, Popconfirm, Badge, message } from 'antd'
+import { Button, Space, Input, Modal, Form, Popconfirm, Badge, DatePicker, Radio } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
+import dayjs, { Dayjs } from 'dayjs'
 import RefreshButton from '../../components/common/RefreshButton'
 import AdvancedFilter, { FilterConfig } from '../../components/common/AdvancedFilter'
 import CustomTable from '../../components/common/CustomTable'
@@ -16,13 +17,16 @@ import ExportButton from '../../components/common/ExportButton'
 import ActionSelect from '../../components/common/ActionSelect'
 import ImportResultModal from '../../components/common/ImportResultModal'
 
-interface VehicleBrand {
+interface Customer {
   id: number
   code: string
-  name: string
-  country?: string
-  logo?: string
-  description?: string
+  fullName: string
+  email: string
+  phone: string
+  address?: string
+  identityCard?: string
+  dateOfBirth?: string
+  gender?: string
   status: string
 }
 
@@ -33,21 +37,21 @@ interface PagedResult<T> {
   pageSize: number
 }
 
-const VehicleBrandsPage = () => {
+const CustomersPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form] = Form.useForm()
   const [searchTerm, setSearchTerm] = useState('')
-  const [searchInput, setSearchInput] = useState('') // Giá trị input thực tế
-  const debouncedSearchTerm = useDebounce(searchInput, 500) // Debounce 500ms
-  const searchInputRef = useRef<string>('') // Lưu giá trị khi nhấn Enter
+  const [searchInput, setSearchInput] = useState('')
+  const debouncedSearchTerm = useDebounce(searchInput, 500)
+  const searchInputRef = useRef<string>('')
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 })
   const [advancedFilters, setAdvancedFilters] = useState<Record<string, string | undefined>>({})
   const [sortBy, setSortBy] = useState<string | undefined>(undefined)
   const [sortDescending, setSortDescending] = useState(false)
   const [filterResetTrigger, setFilterResetTrigger] = useState(0)
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([])
-  const [selectedRows, setSelectedRows] = useState<VehicleBrand[]>([])
+  const [selectedRows, setSelectedRows] = useState<Customer[]>([])
   const [isImporting, setIsImporting] = useState(false)
   const [importResult, setImportResult] = useState<{
     open: boolean
@@ -63,8 +67,6 @@ const VehicleBrandsPage = () => {
   })
   const queryClient = useQueryClient()
 
-  // Sync debouncedSearchTerm với searchTerm (dùng cho query)
-  // Nếu có searchInputRef thì dùng nó (khi nhấn Enter), không thì dùng debounced
   useEffect(() => {
     if (searchInputRef.current !== '') {
       setSearchTerm(searchInputRef.current)
@@ -76,7 +78,7 @@ const VehicleBrandsPage = () => {
 
   const filterConfigs: FilterConfig[] = [
     { key: 'filterCode', label: 'Mã', type: 'text', placeholder: 'Nhập mã để lọc...' },
-    { key: 'filterName', label: 'Tên', type: 'text', placeholder: 'Nhập tên để lọc...' },
+    { key: 'filterName', label: 'Họ tên', type: 'text', placeholder: 'Nhập họ tên để lọc...' },
     {
       key: 'filterStatus',
       label: 'Trạng thái',
@@ -86,14 +88,12 @@ const VehicleBrandsPage = () => {
         { label: 'Không hoạt động', value: 'I' }
       ],
       placeholder: 'Chọn trạng thái...'
-    },
-    { key: 'filterCountry', label: 'Quốc gia', type: 'text', placeholder: 'Nhập quốc gia để lọc...' },
-    { key: 'filterDescription', label: 'Mô tả', type: 'text', placeholder: 'Nhập mô tả để lọc...' }
+    }
   ]
 
   const { data, isLoading } = useQuery({
     queryKey: [
-      'vehicleBrands',
+      'customers',
       pagination.current,
       pagination.pageSize,
       searchTerm,
@@ -108,20 +108,16 @@ const VehicleBrandsPage = () => {
         searchTerm: searchTerm || undefined
       }
 
-      // Add advanced filters
       if (advancedFilters.filterCode) params.filterCode = advancedFilters.filterCode
       if (advancedFilters.filterName) params.filterName = advancedFilters.filterName
       if (advancedFilters.filterStatus) params.filterStatus = advancedFilters.filterStatus
-      if (advancedFilters.filterCountry) params.filterCountry = advancedFilters.filterCountry
-      if (advancedFilters.filterDescription) params.filterDescription = advancedFilters.filterDescription
 
-      // Add sorting
       if (sortBy) {
         params.sortBy = sortBy
         params.sortDescending = sortDescending
       }
 
-      const response = await api.get<{ success: boolean; data: PagedResult<VehicleBrand> }>('/VehicleBrands', {
+      const response = await api.get<{ success: boolean; data: PagedResult<Customer> }>('/Customers', {
         params
       })
       return response.data.data
@@ -130,14 +126,14 @@ const VehicleBrandsPage = () => {
 
   const createMutation = useMutation({
     mutationFn: async (values: any) => {
-      const response = await api.post('/VehicleBrands', values)
+      const response = await api.post('/Customers', values)
       return response.data
     },
     onSuccess: () => {
-      showSuccess('Tạo mới hãng xe thành công!')
+      showSuccess('Tạo mới khách hàng thành công!')
       setIsModalOpen(false)
       form.resetFields()
-      queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: (error: any) => {
       showError(error.response?.data?.message || 'Tạo mới thất bại. Vui lòng thử lại!')
@@ -146,15 +142,15 @@ const VehicleBrandsPage = () => {
 
   const updateMutation = useMutation({
     mutationFn: async ({ id, values }: { id: number; values: any }) => {
-      const response = await api.put(`/VehicleBrands/${id}`, values)
+      const response = await api.put(`/Customers/${id}`, values)
       return response.data
     },
     onSuccess: () => {
-      showSuccess('Cập nhật hãng xe thành công!')
+      showSuccess('Cập nhật khách hàng thành công!')
       setIsModalOpen(false)
       setEditingId(null)
       form.resetFields()
-      queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: (error: any) => {
       showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
@@ -163,11 +159,11 @@ const VehicleBrandsPage = () => {
 
   const deleteMutation = useMutation({
     mutationFn: async (id: number) => {
-      await api.delete(`/VehicleBrands/${id}`)
+      await api.delete(`/Customers/${id}`)
     },
     onSuccess: () => {
-      showSuccess('Xóa hãng xe thành công!')
-      queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+      showSuccess('Xóa khách hàng thành công!')
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: () => {
       showError('Xóa thất bại. Vui lòng thử lại!')
@@ -180,9 +176,13 @@ const VehicleBrandsPage = () => {
     setIsModalOpen(true)
   }
 
-  const handleEdit = (record: VehicleBrand) => {
+  const handleEdit = (record: Customer) => {
     setEditingId(record.id)
-    form.setFieldsValue(record)
+    const formValues = {
+      ...record,
+      dateOfBirth: record.dateOfBirth ? dayjs(record.dateOfBirth) : undefined
+    }
+    form.setFieldsValue(formValues)
     setIsModalOpen(true)
   }
 
@@ -190,33 +190,27 @@ const VehicleBrandsPage = () => {
     deleteMutation.mutate(id)
   }
 
-  const handleCopy = (record: VehicleBrand) => {
-    // Mở popup tạo mới với dữ liệu của record được copy (trừ Code)
+  const handleCopy = (record: Customer) => {
     setEditingId(null)
-    const { code, ...restData } = record
-    form.setFieldsValue({
-      ...restData,
-      code: '' // Bỏ trống Code
-    })
+    const formValues = {
+      ...record,
+      code: undefined,
+      dateOfBirth: record.dateOfBirth ? dayjs(record.dateOfBirth) : undefined
+    }
+    form.setFieldsValue(formValues)
     setIsModalOpen(true)
   }
 
   const handleRefresh = () => {
-    // Reset search term
     setSearchTerm('')
     setSearchInput('')
     searchInputRef.current = ''
-    // Reset advanced filters
     setAdvancedFilters({})
-    // Reset filter form (trigger reset in AdvancedFilter component)
     setFilterResetTrigger((prev) => prev + 1)
-    // Reset sorting
     setSortBy(undefined)
     setSortDescending(false)
-    // Reset pagination to first page
     setPagination({ current: 1, pageSize: pagination.pageSize })
-    // Invalidate and refetch data
-    queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+    queryClient.invalidateQueries({ queryKey: ['customers'] })
   }
 
   const handleFilterChange = (filters: Record<string, string | undefined>) => {
@@ -232,10 +226,14 @@ const VehicleBrandsPage = () => {
   const handleSubmit = async () => {
     try {
       const values = await form.validateFields()
+      const submitValues = {
+        ...values,
+        dateOfBirth: values.dateOfBirth ? (values.dateOfBirth as Dayjs).toISOString() : undefined
+      }
       if (editingId) {
-        updateMutation.mutate({ id: editingId, values })
+        updateMutation.mutate({ id: editingId, values: submitValues })
       } else {
-        createMutation.mutate(values)
+        createMutation.mutate(submitValues)
       }
     } catch (error) {
       console.error('Validation failed:', error)
@@ -253,21 +251,19 @@ const VehicleBrandsPage = () => {
     }
   }
 
-  // Handle import Excel
   const handleImport = async (file: File) => {
     setIsImporting(true)
     try {
       const formData = new FormData()
       formData.append('file', file)
 
-      const response = await api.post('/VehicleBrands/import', formData, {
+      const response = await api.post('/Customers/import', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }
       })
 
       if (response.data.success) {
-        // Show success result modal
         setImportResult({
           open: true,
           success: true,
@@ -276,11 +272,10 @@ const VehicleBrandsPage = () => {
           successCount: response.data.data?.successCount,
           errors: []
         })
-        queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+        queryClient.invalidateQueries({ queryKey: ['customers'] })
         setSelectedRowKeys([])
         setSelectedRows([])
       } else {
-        // Show error result modal
         setImportResult({
           open: true,
           success: false,
@@ -292,7 +287,6 @@ const VehicleBrandsPage = () => {
         throw new Error('Import thất bại do lỗi validation')
       }
     } catch (error: any) {
-      // Check if error response contains validation errors
       if (error.response?.data?.errors && Array.isArray(error.response.data.errors)) {
         setImportResult({
           open: true,
@@ -311,7 +305,6 @@ const VehicleBrandsPage = () => {
     }
   }
 
-  // Handle delete multiple
   const handleDeleteMultiple = async () => {
     if (selectedRowKeys.length === 0) {
       showWarning('Vui lòng chọn ít nhất một dòng để xóa!')
@@ -320,11 +313,11 @@ const VehicleBrandsPage = () => {
 
     try {
       const ids = selectedRowKeys.map((key) => Number(key))
-      await api.post('/VehicleBrands/bulk-delete', ids)
-      showSuccess(`Đã xóa ${selectedRowKeys.length} hãng xe thành công!`)
+      await api.post('/Customers/bulk-delete', ids)
+      showSuccess(`Đã xóa ${selectedRowKeys.length} khách hàng thành công!`)
       setSelectedRowKeys([])
       setSelectedRows([])
-      queryClient.invalidateQueries({ queryKey: ['vehicleBrands'] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: { message?: string } } }
@@ -335,7 +328,7 @@ const VehicleBrandsPage = () => {
     }
   }
 
-  const columns: (ColumnsType<VehicleBrand>[number] & { searchable?: boolean; filterable?: boolean })[] = [
+  const columns: (ColumnsType<Customer>[number] & { searchable?: boolean; filterable?: boolean })[] = [
     {
       title: 'STT',
       key: 'index',
@@ -352,17 +345,31 @@ const VehicleBrandsPage = () => {
       filterable: false
     },
     {
-      title: 'Tên',
-      dataIndex: 'name',
-      key: 'name',
+      title: 'Họ tên',
+      dataIndex: 'fullName',
+      key: 'fullName',
       sorter: true,
       searchable: true,
       filterable: false
     },
     {
-      title: 'Quốc gia',
-      dataIndex: 'country',
-      key: 'country',
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      searchable: true,
+      filterable: false
+    },
+    {
+      title: 'Số điện thoại',
+      dataIndex: 'phone',
+      key: 'phone',
+      searchable: true,
+      filterable: false
+    },
+    {
+      title: 'CMND/CCCD',
+      dataIndex: 'identityCard',
+      key: 'identityCard',
       searchable: true,
       filterable: false
     },
@@ -400,7 +407,7 @@ const VehicleBrandsPage = () => {
   return (
     <div>
       <div className='flex justify-between items-center mb-4'>
-        <h1 className='text-2xl font-bold'>Quản lý Hãng xe</h1>
+        <h1 className='text-2xl font-bold'>Quản lý Khách hàng</h1>
         <Space>
           <Input
             placeholder='Tìm kiếm...'
@@ -411,7 +418,6 @@ const VehicleBrandsPage = () => {
               setPagination({ ...pagination, current: 1 })
             }}
             onPressEnter={(e) => {
-              // Khi nhấn Enter, search ngay lập tức
               const value = (e.target as HTMLInputElement).value
               searchInputRef.current = value
               setSearchTerm(value)
@@ -424,8 +430,8 @@ const VehicleBrandsPage = () => {
           <ImportButton onImport={handleImport} loading={isImporting} />
           <ExportButton
             selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
-            apiEndpoint='/VehicleBrands/export'
-            filename='VehicleBrand'
+            apiEndpoint='/Customers/export'
+            filename='Customer'
             loading={false}
             disabled={false}
           />
@@ -444,7 +450,7 @@ const VehicleBrandsPage = () => {
         resetTrigger={filterResetTrigger}
       />
 
-      <CustomTable<VehicleBrand>
+      <CustomTable<Customer>
         columns={columns}
         dataSource={data?.data}
         loading={isLoading}
@@ -464,7 +470,6 @@ const VehicleBrandsPage = () => {
           showTotal: (total) => `Tổng ${total} bản ghi`,
           onChange: (page, pageSize) => {
             setPagination({ current: page, pageSize })
-            // Clear selection when pagination changes
             setSelectedRowKeys([])
             setSelectedRows([])
           }
@@ -472,7 +477,7 @@ const VehicleBrandsPage = () => {
       />
 
       <Modal
-        title={editingId ? 'Sửa Hãng xe' : 'Thêm mới Hãng xe'}
+        title={editingId ? 'Sửa Khách hàng' : 'Thêm mới Khách hàng'}
         open={isModalOpen}
         onOk={handleSubmit}
         onCancel={() => {
@@ -480,22 +485,43 @@ const VehicleBrandsPage = () => {
           form.resetFields()
         }}
         confirmLoading={createMutation.isPending || updateMutation.isPending}
+        width={600}
       >
         <Form form={form} layout='vertical'>
           <Form.Item name='code' label='Mã' rules={[{ required: true, message: 'Vui lòng nhập mã' }]}>
             <CodeInput disabled={!!editingId} />
           </Form.Item>
-          <Form.Item name='name' label='Tên' rules={[{ required: true, message: 'Vui lòng nhập tên' }]}>
+          <Form.Item name='fullName' label='Họ tên' rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name='country' label='Quốc gia'>
+          <Form.Item
+            name='email'
+            label='Email'
+            rules={[
+              { required: true, message: 'Vui lòng nhập email' },
+              { type: 'email', message: 'Email không hợp lệ' }
+            ]}
+          >
             <Input />
           </Form.Item>
-          <Form.Item name='logo' label='Logo URL'>
+          <Form.Item name='phone' label='Số điện thoại' rules={[{ required: true, message: 'Vui lòng nhập số điện thoại' }]}>
             <Input />
           </Form.Item>
-          <Form.Item name='description' label='Mô tả'>
-            <Input.TextArea rows={3} />
+          <Form.Item name='address' label='Địa chỉ'>
+            <Input.TextArea rows={2} />
+          </Form.Item>
+          <Form.Item name='identityCard' label='CMND/CCCD'>
+            <Input />
+          </Form.Item>
+          <Form.Item name='dateOfBirth' label='Ngày sinh'>
+            <DatePicker style={{ width: '100%' }} format='DD/MM/YYYY' />
+          </Form.Item>
+          <Form.Item name='gender' label='Giới tính'>
+            <Radio.Group>
+              <Radio value='M'>Nam</Radio>
+              <Radio value='F'>Nữ</Radio>
+              <Radio value='O'>Khác</Radio>
+            </Radio.Group>
           </Form.Item>
           <Form.Item
             name='status'
@@ -508,7 +534,6 @@ const VehicleBrandsPage = () => {
         </Form>
       </Modal>
 
-      {/* Import Result Modal */}
       <ImportResultModal
         open={importResult.open}
         onClose={() => setImportResult({ ...importResult, open: false })}
@@ -522,4 +547,5 @@ const VehicleBrandsPage = () => {
   )
 }
 
-export default VehicleBrandsPage
+export default CustomersPage
+

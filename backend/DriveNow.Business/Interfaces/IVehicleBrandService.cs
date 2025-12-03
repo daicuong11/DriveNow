@@ -11,5 +11,8 @@ public interface IVehicleBrandService
     Task<VehicleBrandDto> UpdateAsync(int id, UpdateVehicleBrandRequest request);
     Task DeleteAsync(int id);
     Task<VehicleBrandDto> CopyAsync(int id);
+    Task<ImportExcelResponse> ImportExcelAsync(Stream fileStream, string fileName);
+    Task<MemoryStream> ExportExcelAsync(List<int>? ids);
+    Task DeleteMultipleAsync(List<int> ids);
 }
 

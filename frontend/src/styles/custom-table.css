@@ -11,7 +11,7 @@
 }
 
 .custom-table .ant-table-thead > tr > th {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%) !important;
+  background: #2563eb !important;
   color: #fff !important;
   font-weight: 600;
   text-align: center;
@@ -23,10 +23,10 @@
 }
 
 .custom-table .ant-table-thead > tr > th:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #06b6d4 100%) !important;
+  background: #1d4ed8 !important;
   color: #fff !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(30, 58, 138, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
 }
 
 .custom-table .ant-table-thead > tr > th:hover::before {
@@ -39,16 +39,16 @@
 
 /* Override Ant Design default hover styles */
 .custom-table .ant-table-thead > tr > th.ant-table-cell {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%) !important;
+  background: #2563eb !important;
 }
 
 .custom-table .ant-table-thead > tr > th.ant-table-cell:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #06b6d4 100%) !important;
+  background: #1d4ed8 !important;
   color: #fff !important;
 }
 
 .custom-table .ant-table-thead > tr:hover > th {
-  background: linear-gradient(135deg, #1e40af 0%, #06b6d4 100%) !important;
+  background: #1d4ed8 !important;
   color: #fff !important;
 }
 
@@ -56,8 +56,8 @@
 .custom-table .ant-table-thead > tr > th:hover,
 .custom-table .ant-table-thead > tr:hover > th,
 .custom-table .ant-table-thead > tr > th.ant-table-cell:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #06b6d4 100%) !important;
-  background-color: transparent !important;
+  background: #1d4ed8 !important;
+  background-color: #1d4ed8 !important;
   color: #fff !important;
   opacity: 1 !important;
 }
@@ -65,8 +65,8 @@
 /* Override any Ant Design default background colors */
 .custom-table .ant-table-thead > tr > th,
 .custom-table .ant-table-thead > tr > th.ant-table-cell {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%) !important;
-  background-color: transparent !important;
+  background: #2563eb !important;
+  background-color: #2563eb !important;
 }
 
 .custom-table .ant-table-thead > tr > th .ant-table-column-sorter {
@@ -83,18 +83,56 @@
   color: #fff;
 }
 
+/* Filter & Search Icons - Nổi bật khi active */
 .custom-table .ant-table-thead > tr > th .ant-table-filter-trigger {
-  color: rgba(255, 255, 255, 0.9);
-  transition: all 0.2s ease;
+  color: rgba(255, 255, 255, 0.85);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 4px 6px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .custom-table .ant-table-thead > tr > th:hover .ant-table-filter-trigger {
   color: #fff;
+  background: rgba(255, 255, 255, 0.15);
   transform: scale(1.1);
 }
 
 .custom-table .ant-table-thead > tr > th .ant-table-filter-trigger:hover {
   color: #fff;
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.15);
+}
+
+/* Active Filter Icon - Nổi bật với background và animation */
+.custom-table .ant-table-thead > tr > th .ant-table-filter-trigger-container-open,
+.custom-table .ant-table-thead > tr > th .ant-table-filter-trigger-container-open .ant-table-filter-trigger {
+  background: rgba(255, 255, 255, 0.25) !important;
+  color: #fff !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+  animation: filterIconPulse 2s ease-in-out infinite;
+}
+
+@keyframes filterIconPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Active Search Icon - Nổi bật khi có filter */
+.custom-table .ant-table-thead > tr > th .ant-table-column-has-filters .anticon-search,
+.custom-table .ant-table-thead > tr > th .ant-table-column-has-filters .anticon-filter {
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+  padding: 4px 6px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.3);
+  animation: filterIconPulse 2s ease-in-out infinite;
 }
 
 .custom-table .ant-table-thead > tr > th .anticon {
@@ -183,41 +221,226 @@
   transform: translateY(-2px);
 }
 
-/* Filter dropdown styles */
+/* Filter dropdown styles - Search & Filter Popup */
 .custom-table .ant-table-filter-dropdown {
-  border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  padding: 12px;
-  background: #fff;
-  border: 1px solid #e2e8f0;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(37, 99, 235, 0.08) !important;
+  padding: 16px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1.5px solid rgba(37, 99, 235, 0.15) !important;
+  backdrop-filter: blur(10px);
+  animation: filterDropdownFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 240px;
+  max-width: 240px;
 }
 
+@keyframes filterDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Header cho filter dropdown - Hiển thị cột đang filter */
+.custom-table .ant-table-filter-dropdown::before {
+  content: attr(data-column-title);
+  display: block;
+  font-weight: 700;
+  font-size: 14px;
+  color: #2563eb;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid rgba(37, 99, 235, 0.1);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Input styling in filter dropdown */
 .custom-table .ant-table-filter-dropdown .ant-input {
-  border-radius: 8px;
-  border: 1px solid #cbd5e1;
-  transition: all 0.3s ease;
+  border-radius: 10px !important;
+  border: 1.5px solid #e2e8f0 !important;
+  padding: 8px 14px 8px 36px !important;
+  font-size: 14px !important;
+  height: 36px !important;
+  line-height: 20px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  background: #fff !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-input-affix-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  height: 36px !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-input-affix-wrapper .ant-input-prefix {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
+  margin-right: 8px !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-input-affix-wrapper .ant-input {
+  height: 100% !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
 }
 
 .custom-table .ant-table-filter-dropdown .ant-input:hover {
-  border-color: #0ea5e9;
+  border-color: #2563eb !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15) !important;
+  transform: translateY(-1px);
 }
 
-.custom-table .ant-table-filter-dropdown .ant-input:focus {
-  border-color: #0ea5e9;
-  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+.custom-table .ant-table-filter-dropdown .ant-input:focus,
+.custom-table .ant-table-filter-dropdown .ant-input-focused {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12), 0 4px 12px rgba(37, 99, 235, 0.15) !important;
+  outline: none !important;
+  transform: translateY(-1px);
+}
+
+.custom-table .ant-table-filter-dropdown .ant-input::placeholder {
+  color: #94a3b8;
+  font-weight: 400;
+}
+
+/* Buttons in filter dropdown */
+.custom-table .ant-table-filter-dropdown .ant-btn {
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  height: 32px !important;
+  padding: 0 16px !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08) !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 13px !important;
 }
 
 .custom-table .ant-table-filter-dropdown .ant-btn-primary {
-  background: linear-gradient(135deg, #1e3a8a 0%, #0ea5e9 100%);
-  border: none;
-  border-radius: 6px;
-  transition: all 0.3s ease;
+  background: #2563eb !important;
+  border: none !important;
+  color: #fff !important;
 }
 
 .custom-table .ant-table-filter-dropdown .ant-btn-primary:hover {
-  background: linear-gradient(135deg, #1e40af 0%, #06b6d4 100%);
+  background: #1d4ed8 !important;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4) !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-btn-primary:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3) !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-btn-primary .anticon {
+  margin-right: 4px;
+  font-size: 14px;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-btn:not(.ant-btn-primary) {
+  background: #fff !important;
+  border: 1.5px solid #cbd5e1 !important;
+  color: #64748b !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-btn:not(.ant-btn-primary):hover {
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  background: #f0f9ff !important;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.2) !important;
+}
+
+.custom-table .ant-table-filter-dropdown .ant-btn:not(.ant-btn-primary):active {
+  transform: translateY(0);
+  box-shadow: 0 1px 3px rgba(37, 99, 235, 0.15) !important;
+}
+
+/* Space between buttons */
+.custom-table .ant-table-filter-dropdown .ant-space {
+  gap: 10px !important;
+  width: 100%;
+  justify-content: flex-end;
+}
+
+/* Filter Menu (for filter options) */
+.custom-table .ant-dropdown-menu {
+  border-radius: 16px !important;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 16px rgba(37, 99, 235, 0.08) !important;
+  padding: 8px !important;
+  background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%) !important;
+  border: 1.5px solid rgba(37, 99, 235, 0.15) !important;
+  backdrop-filter: blur(10px);
+  animation: filterDropdownFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-table .ant-dropdown-menu-item {
+  border-radius: 10px !important;
+  margin: 4px 0 !important;
+  padding: 10px 16px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 500 !important;
+}
+
+.custom-table .ant-dropdown-menu-item:hover {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #2563eb !important;
+  transform: translateX(4px);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.12) !important;
+}
+
+.custom-table .ant-dropdown-menu-item-selected {
+  background: #2563eb !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+}
+
+.custom-table .ant-dropdown-menu-item-selected:hover {
+  background: #1d4ed8 !important;
+  color: #fff !important;
+  transform: translateX(4px);
+}
+
+.custom-table .ant-dropdown-menu-item-active {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  color: #2563eb !important;
+}
+
+/* Checkbox in filter menu */
+.custom-table .ant-dropdown-menu-item .ant-checkbox-wrapper {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.custom-table .ant-dropdown-menu-item:hover .ant-checkbox-wrapper {
+  transform: scale(1.02);
+}
+
+.custom-table .ant-dropdown-menu-item .ant-checkbox-checked .ant-checkbox-inner {
+  background: #2563eb !important;
+  border-color: #2563eb !important;
+}
+
+.custom-table .ant-dropdown-menu-item .ant-checkbox-inner {
+  border-radius: 4px !important;
+  border-width: 2px !important;
+  transition: all 0.2s ease !important;
+}
+
+.custom-table .ant-dropdown-menu-item .ant-checkbox:hover .ant-checkbox-inner {
+  border-color: #2563eb !important;
 }
 
 /* Loading state */

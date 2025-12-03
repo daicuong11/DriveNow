@@ -8,6 +8,9 @@ import { store, persistor } from "./store/store";
 import App from "./App";
 import "./index.css";
 import "./styles/custom-table.css";
+import "./styles/logo.css";
+import "./styles/sidebar.css";
+import "./styles/header.css";
 import "react-toastify/dist/ReactToastify.css";
 import "./styles/toast.css";
 

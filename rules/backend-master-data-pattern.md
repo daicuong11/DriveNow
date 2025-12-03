@@ -41,7 +41,9 @@ public interface I{EntityName}Service
 - `IRepository<{EntityName}>` - Generic repository
 - `ApplicationDbContext` - DbContext để query trực tiếp khi cần
 - `DriveNow.Common.Extensions` - String extensions cho diacritic-insensitive search
-- `OfficeOpenXml` (EPPlus) - Cho import/export Excel
+- `DriveNow.Common.Helpers` - ExcelExportHelper và ExcelImportHelper cho import/export Excel
+- `DriveNow.Common.Constants` - ExcelSheetNames cho validate sheet name
+- `OfficeOpenXml` (EPPlus) - Cho import/export Excel (được sử dụng trong helpers)
 
 **Required Methods:**
 
@@ -171,17 +173,19 @@ public async Task<PagedResult<VehicleTypeDto>> GetPagedAsync(PagedRequest reques
 - **Pattern:**
   1. Set `ExcelPackage.LicenseContext = LicenseContext.NonCommercial`
   2. Đọc Excel từ `Stream fileStream`
-  3. Validate header row (row 1) - hỗ trợ cả tiếng Việt và tiếng Anh
-  4. Validate required columns (Code, Name)
-  5. Process data rows (từ row 2)
-  6. Validate từng row:
-     - Code không được trống, tự động ToUpper()
-     - Name không được trống
-     - Status mặc định "A" nếu không hợp lệ
+  3. **Validate sheet name** sử dụng `ExcelImportHelper.ValidateSheetName()` với constant từ `ExcelSheetNames`
+  4. Đọc headers sử dụng `ExcelImportHelper.ReadHeaders()`
+  5. Validate required columns (Code, Name) - hỗ trợ cả tiếng Việt và tiếng Anh
+  6. **Validate tất cả rows trước khi insert:**
+     - Required fields: Sử dụng `ExcelImportHelper.ValidateRequired()`
+     - Max length: Sử dụng `ExcelImportHelper.ValidateMaxLength()`
+     - Status: Sử dụng `ExcelImportHelper.TryParseStatus()` để convert text sang code
+     - Code: Tự động ToUpper()
      - Check Code unique trong database
-  7. Nếu có lỗi validation, return `ImportExcelResponse` với `Success = false` và danh sách `Errors`
-  8. Nếu không có lỗi, `AddRangeAsync` và `SaveChangesAsync`
-  9. Return `ImportExcelResponse` với `Success = true` và `SuccessCount`
+  7. **Tổng hợp tất cả lỗi** sử dụng `ExcelImportHelper.AggregateErrors()` thành chuỗi
+  8. **Nếu có bất kỳ lỗi nào, return early** với `Success = false` và danh sách `Errors`
+  9. **Chỉ insert khi tất cả pass validate:** `AddRangeAsync` và `SaveChangesAsync`
+  10. Return `ImportExcelResponse` với `Success = true` và `SuccessCount`
 
 **Example:**
 
@@ -194,34 +198,98 @@ public async Task<ImportExcelResponse> ImportExcelAsync(Stream fileStream, strin
     ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
     using var package = new ExcelPackage(fileStream);
-    var worksheet = package.Workbook.Worksheets[0];
-
-    // Validate header
-    var headers = new Dictionary<string, int>();
-    // ... read headers
-
-    // Validate required columns
-    if (!headers.ContainsKey("mã") && !headers.ContainsKey("code"))
-    {
-        errors.Add(new ImportError { Row = 1, Message = "Thiếu cột 'Mã' hoặc 'Code'", Field = "Code" });
-    }
-
-    // Process data rows
-    var entitiesToAdd = new List<VehicleType>();
-    for (int row = 2; row <= rowCount; row++)
-    {
-        // Validate and add to entitiesToAdd
-    }
-
-    // If errors, return early
-    if (errors.Any())
+    
+    if (package.Workbook.Worksheets.Count == 0)
     {
         response.Success = false;
+        response.Message = "File Excel không có sheet nào";
+        errors.Add(new ImportError { Row = 0, Message = "File Excel không có sheet nào" });
         response.Errors = errors;
         return response;
     }
 
-    // Import all valid rows
+    var worksheet = package.Workbook.Worksheets[0];
+
+    // Validate sheet name
+    if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.VehicleType))
+    {
+        response.Success = false;
+        response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'";
+        errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'" });
+        response.Errors = errors;
+        return response;
+    }
+
+    // Read headers using helper
+    var headers = ExcelImportHelper.ReadHeaders(worksheet, 1);
+
+    // Validate required columns
+    if (!headers.ContainsKey("Mã") && !headers.ContainsKey("Code") && !headers.ContainsKey("mã") && !headers.ContainsKey("code"))
+    {
+        errors.Add(new ImportError { Row = 1, Message = "Thiếu cột 'Mã' hoặc 'Code'", Field = "Code" });
+    }
+
+    // Get column indices
+    int codeCol = -1, nameCol = -1;
+    // ... get column indices
+
+    var entitiesToAdd = new List<VehicleType>();
+
+    // Validate all rows first before inserting
+    for (int row = 2; row <= rowCount; row++)
+    {
+        var codeValue = ExcelImportHelper.GetCellValue(worksheet, row, codeCol);
+        var nameValue = ExcelImportHelper.GetCellValue(worksheet, row, nameCol);
+
+        // Validate required fields
+        var codeError = ExcelImportHelper.ValidateRequired(codeValue, "Mã");
+        if (codeError != null)
+        {
+            errors.Add(new ImportError { Row = row, Message = codeError, Field = "Code" });
+        }
+
+        // Validate max length
+        var codeLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
+        if (codeLengthError != null)
+        {
+            errors.Add(new ImportError { Row = row, Message = codeLengthError, Field = "Code" });
+        }
+
+        // Parse status
+        var (statusCode, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
+        if (statusError != null)
+        {
+            errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
+        }
+
+        // Check code unique
+        var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(code))
+        {
+            if (await _context.VehicleTypes.AnyAsync(v => v.Code == code && !v.IsDeleted))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                continue;
+            }
+        }
+
+        // All validations passed, prepare entity
+        if (!errors.Any(e => e.Row == row))
+        {
+            entitiesToAdd.Add(new VehicleType { /* ... */ });
+        }
+    }
+
+    // If there are any errors, don't import anything
+    if (errors.Any())
+    {
+        response.Success = false;
+        response.Errors = errors;
+        response.Message = ExcelImportHelper.AggregateErrors(errors.Select(e => (e.Row, e.Message)).ToList());
+        return response;
+    }
+
+    // All validations passed, import all rows
     if (entitiesToAdd.Any())
     {
         await _context.VehicleTypes.AddRangeAsync(entitiesToAdd);
@@ -230,70 +298,66 @@ public async Task<ImportExcelResponse> ImportExcelAsync(Stream fileStream, strin
     }
 
     response.Success = true;
+    response.Message = $"Import thành công {response.SuccessCount} dòng";
     return response;
 }
 ```
+
+**Note:**
+- Sử dụng `ExcelImportHelper` từ `DriveNow.Common.Helpers` để tái sử dụng code
+- Validate sheet name sử dụng constant từ `ExcelSheetNames` (VD: `ExcelSheetNames.VehicleType`)
+- Validate tất cả rows trước khi insert - không insert nếu có bất kỳ lỗi nào
+- Tổng hợp lỗi thành chuỗi dễ đọc với format: "Dòng [Row]: [Message]"
+- Helper functions: `ValidateRequired()`, `ValidateMaxLength()`, `TryParseStatus()`, `TryParseDateTime()`, `AggregateErrors()`
+- Code tự động uppercase, Status convert từ text sang code
 
 #### 2.8. ExportExcelAsync
 
 - **Mục đích:** Export dữ liệu ra Excel
 - **Pattern:**
-  1. Set `ExcelPackage.LicenseContext = LicenseContext.NonCommercial`
-  2. Query data: nếu `ids == null || ids.Count == 0` thì export all, ngược lại export selected
-  3. Tạo Excel package và worksheet
-  4. Write headers (row 1) với style (bold, background color)
-  5. Write data rows (từ row 2)
-  6. Auto-fit columns
-  7. Save vào `MemoryStream` và return (đảm bảo `Position = 0`)
+  1. Query data: nếu `ids == null || ids.Count == 0` thì export all, ngược lại export selected
+  2. Định nghĩa column mapping: Dictionary map từ property name sang header name (VD: `{"Code", "Mã"}`, `{"Name", "Tên"}`)
+  3. Gọi `ExcelExportHelper.ExportToExcelAsync()` với data, columnMapping, và sheetName
+  4. Return `MemoryStream` từ helper
 
 **Example:**
 
 ```csharp
 public async Task<MemoryStream> ExportExcelAsync(List<int>? ids)
 {
-    ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
-
     List<VehicleType> data;
     if (ids == null || ids.Count == 0)
     {
+        // Export all
         data = await _context.VehicleTypes.Where(v => !v.IsDeleted).ToListAsync();
     }
     else
     {
+        // Export selected
         data = await _context.VehicleTypes.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
     }
 
-    using var package = new ExcelPackage();
-    var worksheet = package.Workbook.Worksheets.Add("Sheet Name");
-
-    // Headers
-    worksheet.Cells[1, 1].Value = "Mã";
-    // ... more headers
-
-    // Style headers
-    using (var range = worksheet.Cells[1, 1, 1, columnCount])
+    // Column mapping: Property name -> Header name
+    var columnMapping = new Dictionary<string, string>
     {
-        range.Style.Font.Bold = true;
-        range.Style.Fill.PatternType = OfficeOpenXml.Style.ExcelFillStyle.Solid;
-        range.Style.Fill.BackgroundColor.SetColor(System.Drawing.Color.LightGray);
-    }
+        { "Code", "Mã" },
+        { "Name", "Tên" },
+        { "Description", "Mô tả" },
+        { "Status", "Trạng thái" }
+    };
 
-    // Data
-    for (int i = 0; i < data.Count; i++)
-    {
-        var row = i + 2;
-        worksheet.Cells[row, 1].Value = data[i].Code;
-        // ... more columns
-    }
-
-    worksheet.Cells[worksheet.Dimension.Address].AutoFitColumns();
-
-    var memoryStream = new MemoryStream();
-    await package.SaveAsAsync(memoryStream);
-    memoryStream.Position = 0;
-    return memoryStream;
+    return await ExcelExportHelper.ExportToExcelAsync(
+        data: data,
+        columnMapping: columnMapping,
+        sheetName: "Loại xe"
+    );
 }
 ```
+
+**Note:** 
+- Sử dụng `ExcelExportHelper` từ `DriveNow.Common.Helpers` để tái sử dụng code
+- Helper tự động xử lý: license context, header styling, auto-fit columns, AutoFilter, format DateTime/Status/Boolean
+- Column mapping phải map đúng property names của entity
 
 #### 2.9. DeleteMultipleAsync
 
@@ -421,8 +485,13 @@ public class Update{EntityName}Request
 - **Body:** `ExportExcelRequest { ids: List<int> }` - Empty list = export all
 - **Process:**
   1. Gọi service `ExportExcelAsync(request?.Ids)`
-  2. Return `File(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName)`
-- **Filename Format:** `"{entity-name}_Export.xlsx"` (kebab-case)
+  2. Set Content-Disposition header với filename đúng format (hỗ trợ UTF-8 encoding)
+  3. Return `File(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName)`
+- **Filename Format:** `"{EntityName}_Export.xlsx"` (PascalCase, VD: `VehicleType_Export.xlsx`, `VehicleBrand_Export.xlsx`)
+- **Content-Disposition Header:** 
+  ```csharp
+  Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
+  ```
 
 #### 4.9. POST `/api/{EntityName}s/bulk-delete`
 
@@ -435,12 +504,12 @@ public class Update{EntityName}Request
 
 ### NuGet Packages
 
-- `EPPlus` (Version 7.0.0) - Cho import/export Excel (cần thêm vào `DriveNow.Business.csproj`)
+- `EPPlus` (Version 7.5.2) - Cho import/export Excel (cần thêm vào `DriveNow.Business.csproj` và `DriveNow.Common.csproj`)
 
 ### Project References
 
 - `DriveNow.Data` - Cho entities và repository
-- `DriveNow.Common` - Cho extensions và constants
+- `DriveNow.Common` - Cho extensions, constants, và helpers (ExcelExportHelper, ExcelImportHelper, ExcelSheetNames)
 
 ## Notes
 
@@ -468,9 +537,22 @@ public class Update{EntityName}Request
 
 5. **Import/Export:**
 
-   - Import: Validate tất cả rows trước, nếu có lỗi thì không import gì cả
-   - Export: Hỗ trợ export all hoặc export selected
-   - Excel headers hỗ trợ cả tiếng Việt và tiếng Anh
+   - **Import:**
+     - Sử dụng `ExcelImportHelper` từ `DriveNow.Common.Helpers` để tái sử dụng code
+     - **Validate sheet name** trước tiên sử dụng `ExcelSheetNames` constants
+     - **Validate tất cả rows trước khi insert** - không insert nếu có bất kỳ lỗi nào
+     - Validate: sheet name, số lượng cột, độ dài dữ liệu, required, format, kiểu dữ liệu, mã FK không tồn tại, mã đã tồn tại
+     - Tổng hợp tất cả lỗi thành chuỗi với format: "Dòng [Row]: [Message]"
+     - Helper functions: `ValidateRequired()`, `ValidateMaxLength()`, `TryParseStatus()`, `TryParseDateTime()`, `AggregateErrors()`
+     - Default: Code tự động uppercase, Status/Enum convert từ text sang code (VD: "Hoạt động" -> "A")
+   - **Export:**
+     - Sử dụng `ExcelExportHelper.ExportToExcelAsync()` để tái sử dụng code
+     - Hỗ trợ export all hoặc export selected
+     - Excel headers hỗ trợ cả tiếng Việt và tiếng Anh
+     - Tự động format DateTime, Status, Boolean
+     - Auto-fit columns với min/max width (10-60)
+     - AutoFilter cho header
+   - Filename: PascalCase format (VD: `VehicleType_Export.xlsx`)
 
 6. **Error Handling:**
 

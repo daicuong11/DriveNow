@@ -1,33 +1,36 @@
-import { Button, Upload } from 'antd'
+import { useState } from 'react'
+import { Button } from 'antd'
 import { UploadOutlined } from '@ant-design/icons'
-import type { UploadProps } from 'antd/es/upload'
+import ImportModal from './ImportModal'
 
 interface ImportButtonProps {
   onImport: (file: File) => Promise<void>
   accept?: string
   loading?: boolean
+  title?: string
 }
 
-const ImportButton = ({ onImport, accept = '.xlsx,.xls', loading = false }: ImportButtonProps) => {
-  const handleChange: UploadProps['onChange'] = async (info) => {
-    if (info.file.originFileObj) {
-      const file = info.file.originFileObj
-      await onImport(file)
-    }
-  }
+const ImportButton = ({ onImport, accept = '.xlsx,.xls', loading = false, title = 'Import Excel' }: ImportButtonProps) => {
+  const [modalOpen, setModalOpen] = useState(false)
 
   return (
-    <Upload
-      accept={accept}
-      showUploadList={false}
-      beforeUpload={() => false} // Prevent auto upload
-      onChange={handleChange}
-      maxCount={1}
-    >
-      <Button icon={<UploadOutlined />} loading={loading} style={{ backgroundColor: '#fff', borderColor: '#d9d9d9' }}>
+    <>
+      <Button
+        icon={<UploadOutlined />}
+        onClick={() => setModalOpen(true)}
+        loading={loading}
+        style={{ backgroundColor: '#fff', borderColor: '#d9d9d9' }}
+      >
         Import Excel
       </Button>
-    </Upload>
+      <ImportModal
+        open={modalOpen}
+        onCancel={() => setModalOpen(false)}
+        onImport={onImport}
+        accept={accept}
+        title={title}
+      />
+    </>
   )
 }
 

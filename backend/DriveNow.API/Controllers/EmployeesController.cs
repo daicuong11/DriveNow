@@ -8,17 +8,17 @@ using System;
 namespace DriveNow.API.Controllers;
 
 /// <summary>
-/// Vehicle Brands Controller - Quản lý hãng xe
+/// Employees Controller - Quản lý nhân viên
 /// </summary>
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
 [Produces("application/json")]
-public class VehicleBrandsController : ControllerBase
+public class EmployeesController : ControllerBase
 {
-    private readonly IVehicleBrandService _service;
+    private readonly IEmployeeService _service;
 
-    public VehicleBrandsController(IVehicleBrandService service)
+    public EmployeesController(IEmployeeService service)
     {
         _service = service;
     }
@@ -36,17 +36,17 @@ public class VehicleBrandsController : ControllerBase
         var result = await _service.GetByIdAsync(id);
         if (result == null)
         {
-            return NotFound(new { success = false, message = "Không tìm thấy hãng xe" });
+            return NotFound(new { success = false, message = "Không tìm thấy nhân viên" });
         }
         return Ok(new { success = true, data = result });
     }
 
     /// <summary>
-    /// Tạo mới hãng xe (Chỉ Admin)
+    /// Tạo mới nhân viên (Chỉ Admin)
     /// </summary>
     [HttpPost]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Create([FromBody] CreateVehicleBrandRequest request)
+    public async Task<IActionResult> Create([FromBody] CreateEmployeeRequest request)
     {
         try
         {
@@ -60,11 +60,11 @@ public class VehicleBrandsController : ControllerBase
     }
 
     /// <summary>
-    /// Cập nhật hãng xe (Chỉ Admin)
+    /// Cập nhật nhân viên (Chỉ Admin)
     /// </summary>
     [HttpPut("{id}")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> Update(int id, [FromBody] UpdateVehicleBrandRequest request)
+    public async Task<IActionResult> Update(int id, [FromBody] UpdateEmployeeRequest request)
     {
         try
         {
@@ -75,10 +75,14 @@ public class VehicleBrandsController : ControllerBase
         {
             return NotFound(new { success = false, message = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { success = false, message = ex.Message });
+        }
     }
 
     /// <summary>
-    /// Xóa hãng xe (Chỉ Admin)
+    /// Xóa nhân viên (Chỉ Admin)
     /// </summary>
     [HttpDelete("{id}")]
     [Authorize(Roles = "Admin")]
@@ -89,7 +93,7 @@ public class VehicleBrandsController : ControllerBase
     }
 
     /// <summary>
-    /// Tạo bản sao hãng xe (Chỉ Admin)
+    /// Tạo bản sao nhân viên (Chỉ Admin)
     /// </summary>
     [HttpPost("{id}/copy")]
     [Authorize(Roles = "Admin")]
@@ -107,7 +111,7 @@ public class VehicleBrandsController : ControllerBase
     }
 
     /// <summary>
-    /// Import Excel - Tạo mới hãng xe từ file Excel (Chỉ Admin)
+    /// Import Excel - Tạo mới nhân viên từ file Excel (Chỉ Admin)
     /// </summary>
     [HttpPost("import")]
     [Authorize(Roles = "Admin")]
@@ -149,7 +153,7 @@ public class VehicleBrandsController : ControllerBase
     }
 
     /// <summary>
-    /// Export Excel - Xuất danh sách hãng xe ra file Excel (Tất cả user đã đăng nhập)
+    /// Export Excel - Xuất danh sách nhân viên ra file Excel (Tất cả user đã đăng nhập)
     /// </summary>
     [HttpPost("export")]
     [Authorize]
@@ -158,11 +162,10 @@ public class VehicleBrandsController : ControllerBase
         try
         {
             var memoryStream = await _service.ExportExcelAsync(request?.Ids);
-            var fileName = "VehicleBrand_Export.xlsx";
-
-            // Set Content-Disposition header với filename đúng format
+            var fileName = "Employee_Export.xlsx";
+            
             Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
-
+            
             return File(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
         catch (Exception ex)
@@ -172,7 +175,7 @@ public class VehicleBrandsController : ControllerBase
     }
 
     /// <summary>
-    /// Xóa nhiều hãng xe (Chỉ Admin)
+    /// Xóa nhiều nhân viên (Chỉ Admin)
     /// </summary>
     [HttpPost("bulk-delete")]
     [Authorize(Roles = "Admin")]
@@ -181,7 +184,7 @@ public class VehicleBrandsController : ControllerBase
         try
         {
             await _service.DeleteMultipleAsync(ids);
-            return Ok(new { success = true, message = $"Đã xóa {ids.Count} hãng xe thành công" });
+            return Ok(new { success = true, message = $"Đã xóa {ids.Count} nhân viên thành công" });
         }
         catch (ArgumentException ex)
         {

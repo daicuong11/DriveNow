@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using DriveNow.Business.DTOs.Common;
 using DriveNow.Business.DTOs.MasterData;
 using DriveNow.Business.Interfaces;
+using System;
 
 namespace DriveNow.API.Controllers;
 
@@ -160,7 +161,11 @@ public class VehicleTypesController : ControllerBase
         try
         {
             var memoryStream = await _service.ExportExcelAsync(request?.Ids);
-            var fileName = "loai-xe_Export.xlsx";
+            var fileName = "VehicleType_Export.xlsx";
+            
+            // Set Content-Disposition header với filename đúng format
+            Response.Headers.Append("Content-Disposition", $"attachment; filename=\"{fileName}\"; filename*=UTF-8''{Uri.EscapeDataString(fileName)}");
+            
             return File(memoryStream, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", fileName);
         }
         catch (Exception ex)

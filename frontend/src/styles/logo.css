@@ -1,0 +1,31 @@
+/* Logo animations */
+@keyframes logoShine {
+  0% {
+    left: -100%;
+  }
+  50%,
+  100% {
+    left: 100%;
+  }
+}
+
+@keyframes logoPulse {
+  0%,
+  100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.1);
+  }
+}
+
+.logo-shine {
+  animation: logoShine 3s infinite;
+}
+
+.logo-pulse {
+  animation: logoPulse 4s ease-in-out infinite;
+}
+

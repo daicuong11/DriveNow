@@ -6,6 +6,9 @@ using DriveNow.Data.DbContext;
 using DriveNow.Data.Entities;
 using DriveNow.Data.Interfaces;
 using DriveNow.Common.Extensions;
+using DriveNow.Common.Helpers;
+using DriveNow.Common.Constants;
+using OfficeOpenXml;
 
 namespace DriveNow.Business.Services;
 
@@ -252,6 +255,264 @@ public class VehicleBrandService : IVehicleBrandService
             Description = newEntity.Description,
             Status = newEntity.Status
         };
+    }
+
+    public async Task<ImportExcelResponse> ImportExcelAsync(Stream fileStream, string fileName)
+    {
+        var response = new ImportExcelResponse();
+        var errors = new List<ImportError>();
+
+        ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
+        using var package = new ExcelPackage(fileStream);
+
+        if (package.Workbook.Worksheets.Count == 0)
+        {
+            response.Success = false;
+            response.Message = "File Excel không có sheet nào";
+            errors.Add(new ImportError { Row = 0, Message = "File Excel không có sheet nào" });
+            response.Errors = errors;
+            return response;
+        }
+
+        var worksheet = package.Workbook.Worksheets[0];
+
+        if (worksheet == null || worksheet.Dimension == null)
+        {
+            response.Success = false;
+            response.Message = "File Excel không hợp lệ hoặc rỗng";
+            errors.Add(new ImportError { Row = 0, Message = "File Excel không hợp lệ hoặc rỗng" });
+            response.Errors = errors;
+            return response;
+        }
+
+        // Validate sheet name
+        if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.VehicleBrand))
+        {
+            response.Success = false;
+            response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleBrand}'";
+            errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleBrand}'" });
+            response.Errors = errors;
+            return response;
+        }
+
+        var rowCount = worksheet.Dimension.Rows;
+        response.TotalRows = rowCount - 1; // Exclude header row
+
+        // Read headers using helper
+        var headers = ExcelImportHelper.ReadHeaders(worksheet, 1);
+
+        // Validate required columns
+        if (!headers.ContainsKey("Mã") && !headers.ContainsKey("Code") && !headers.ContainsKey("mã") && !headers.ContainsKey("code"))
+        {
+            errors.Add(new ImportError { Row = 1, Message = "Thiếu cột 'Mã' hoặc 'Code'", Field = "Code" });
+        }
+        if (!headers.ContainsKey("Tên") && !headers.ContainsKey("Name") && !headers.ContainsKey("tên") && !headers.ContainsKey("name"))
+        {
+            errors.Add(new ImportError { Row = 1, Message = "Thiếu cột 'Tên' hoặc 'Name'", Field = "Name" });
+        }
+
+        if (errors.Any())
+        {
+            response.Success = false;
+            response.Errors = errors;
+            response.Message = ExcelImportHelper.AggregateErrors(errors.Select(e => (e.Row, e.Message)).ToList());
+            return response;
+        }
+
+        // Get column indices
+        int codeCol = ExcelImportHelper.GetColumnIndex(headers, "Mã", "Code");
+        int nameCol = ExcelImportHelper.GetColumnIndex(headers, "Tên", "Name");
+        int countryCol = ExcelImportHelper.GetColumnIndex(headers, "Quốc gia", "Country");
+        int logoCol = ExcelImportHelper.GetColumnIndex(headers, "Logo", "Logo");
+        int descCol = ExcelImportHelper.GetColumnIndex(headers, "Mô tả", "Description");
+        int statusCol = ExcelImportHelper.GetColumnIndex(headers, "Trạng thái", "Status");
+
+        var entitiesToAdd = new List<VehicleBrand>();
+
+        // Validate all rows first before inserting
+        for (int row = 2; row <= rowCount; row++)
+        {
+            var codeValue = ExcelImportHelper.GetCellValue(worksheet, row, codeCol);
+            var nameValue = ExcelImportHelper.GetCellValue(worksheet, row, nameCol);
+            var countryValue = countryCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, countryCol) : null;
+            var logoValue = logoCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, logoCol) : null;
+            var descValue = descCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, descCol) : null;
+            var statusValue = statusCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, statusCol) : null;
+
+            // Validate required fields
+            var codeError = ExcelImportHelper.ValidateRequired(codeValue, "Mã");
+            if (codeError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = codeError, Field = "Code" });
+                continue;
+            }
+
+            var nameError = ExcelImportHelper.ValidateRequired(nameValue, "Tên");
+            if (nameError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = nameError, Field = "Name" });
+                continue;
+            }
+
+            // Validate max length
+            var codeMaxLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
+            if (codeMaxLengthError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = codeMaxLengthError, Field = "Code" });
+                continue;
+            }
+
+            var nameMaxLengthError = ExcelImportHelper.ValidateMaxLength(nameValue, "Tên", 200);
+            if (nameMaxLengthError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = nameMaxLengthError, Field = "Name" });
+                continue;
+            }
+
+            if (countryValue != null)
+            {
+                var countryLengthError = ExcelImportHelper.ValidateMaxLength(countryValue, "Quốc gia", 100);
+                if (countryLengthError != null)
+                {
+                    errors.Add(new ImportError { Row = row, Message = countryLengthError, Field = "Country" });
+                    continue;
+                }
+            }
+
+            if (logoValue != null)
+            {
+                var logoLengthError = ExcelImportHelper.ValidateMaxLength(logoValue, "Logo", 500);
+                if (logoLengthError != null)
+                {
+                    errors.Add(new ImportError { Row = row, Message = logoLengthError, Field = "Logo" });
+                    continue;
+                }
+            }
+
+            if (descValue != null)
+            {
+                var descLengthError = ExcelImportHelper.ValidateMaxLength(descValue, "Mô tả", 500);
+                if (descLengthError != null)
+                {
+                    errors.Add(new ImportError { Row = row, Message = descLengthError, Field = "Description" });
+                    continue;
+                }
+            }
+
+            // Parse and validate status
+            var (parsedStatus, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
+            if (statusError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
+                continue;
+            }
+
+            var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
+            var name = nameValue?.ToString()?.Trim() ?? string.Empty;
+            var country = countryValue?.ToString()?.Trim();
+            var logo = logoValue?.ToString()?.Trim();
+            var description = descValue?.ToString()?.Trim();
+            var status = parsedStatus ?? StatusConstants.Active; // Default to Active if parsing fails
+
+            // Check if code already exists in DB
+            if (await _context.VehicleBrands.AnyAsync(v => v.Code == code && !v.IsDeleted))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                continue;
+            }
+
+            // Check for duplicate codes within the current import batch
+            if (entitiesToAdd.Any(e => e.Code == code))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' bị trùng trong file Excel", Field = "Code" });
+                continue;
+            }
+
+            entitiesToAdd.Add(new VehicleBrand
+            {
+                Code = code,
+                Name = name,
+                Country = country,
+                Logo = logo,
+                Description = description,
+                Status = status,
+                CreatedDate = DateTime.UtcNow
+            });
+        }
+
+        // If there are errors, don't import anything
+        if (errors.Any())
+        {
+            response.Success = false;
+            response.Errors = errors;
+            response.Message = ExcelImportHelper.AggregateErrors(errors.Select(e => (e.Row, e.Message)).ToList());
+            return response;
+        }
+
+        // Import all valid rows
+        if (entitiesToAdd.Any())
+        {
+            await _context.VehicleBrands.AddRangeAsync(entitiesToAdd);
+            await _context.SaveChangesAsync();
+            response.SuccessCount = entitiesToAdd.Count;
+        }
+
+        response.Success = true;
+        response.Message = $"Import thành công {response.SuccessCount} dòng";
+        return response;
+    }
+
+    public async Task<MemoryStream> ExportExcelAsync(List<int>? ids)
+    {
+        List<VehicleBrand> data;
+        if (ids == null || ids.Count == 0)
+        {
+            // Export all
+            data = await _context.VehicleBrands.Where(v => !v.IsDeleted).ToListAsync();
+        }
+        else
+        {
+            // Export selected
+            data = await _context.VehicleBrands.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
+        }
+
+        // Column mapping: Property name -> Header name
+        var columnMapping = new Dictionary<string, string>
+        {
+            { "Code", "Mã" },
+            { "Name", "Tên" },
+            { "Country", "Quốc gia" },
+            { "Logo", "Logo" },
+            { "Description", "Mô tả" },
+            { "Status", "Trạng thái" }
+        };
+
+        return await ExcelExportHelper.ExportToExcelAsync(
+            data: data,
+            columnMapping: columnMapping,
+            sheetName: "Hãng xe"
+        );
+    }
+
+    public async Task DeleteMultipleAsync(List<int> ids)
+    {
+        if (ids == null || ids.Count == 0)
+        {
+            throw new ArgumentException("Danh sách ID không được rỗng");
+        }
+
+        var entities = await _context.VehicleBrands
+            .Where(v => ids.Contains(v.Id) && !v.IsDeleted)
+            .ToListAsync();
+
+        foreach (var entity in entities)
+        {
+            entity.IsDeleted = true;
+            entity.ModifiedDate = DateTime.UtcNow;
+        }
+
+        await _context.SaveChangesAsync();
     }
 }
 

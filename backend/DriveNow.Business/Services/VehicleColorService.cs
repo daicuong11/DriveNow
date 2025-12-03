@@ -9,26 +9,25 @@ using DriveNow.Common.Constants;
 using DriveNow.Common.Extensions;
 using DriveNow.Common.Helpers;
 using OfficeOpenXml;
-using static DriveNow.Common.Constants.ExcelSheetNames;
 
 namespace DriveNow.Business.Services;
 
-public class VehicleTypeService : IVehicleTypeService
+public class VehicleColorService : IVehicleColorService
 {
-    private readonly IRepository<VehicleType> _repository;
+    private readonly IRepository<VehicleColor> _repository;
     private readonly ApplicationDbContext _context;
 
-    public VehicleTypeService(IRepository<VehicleType> repository, ApplicationDbContext context)
+    public VehicleColorService(IRepository<VehicleColor> repository, ApplicationDbContext context)
     {
         _repository = repository;
         _context = context;
     }
 
-    public async Task<PagedResult<VehicleTypeDto>> GetPagedAsync(PagedRequest request)
+    public async Task<PagedResult<VehicleColorDto>> GetPagedAsync(PagedRequest request)
     {
-        var query = _context.VehicleTypes.Where(v => !v.IsDeleted);
+        var query = _context.VehicleColors.Where(v => !v.IsDeleted);
 
-        // Normalize search and filter terms first (for diacritic-insensitive search)
+        // Normalize search and filter terms
         string? normalizedSearchTerm = null;
         if (!string.IsNullOrWhiteSpace(request.SearchTerm))
         {
@@ -47,12 +46,6 @@ public class VehicleTypeService : IVehicleTypeService
             normalizedFilterName = request.FilterName.Trim().NormalizeForSearch();
         }
 
-        string? normalizedFilterDescription = null;
-        if (!string.IsNullOrWhiteSpace(request.FilterDescription))
-        {
-            normalizedFilterDescription = request.FilterDescription.Trim().NormalizeForSearch();
-        }
-
         // Apply basic filters that can be translated to SQL
         if (!string.IsNullOrWhiteSpace(request.FilterStatus))
         {
@@ -63,17 +56,17 @@ public class VehicleTypeService : IVehicleTypeService
         // Materialize query to apply diacritic-insensitive filters in memory
         var allItems = await query.ToListAsync();
 
-        // Apply search filter (case-insensitive, diacritic-insensitive)
+        // Apply search filter
         if (!string.IsNullOrWhiteSpace(normalizedSearchTerm))
         {
             allItems = allItems.Where(v =>
                 v.Code.NormalizeForSearch().Contains(normalizedSearchTerm) ||
                 v.Name.NormalizeForSearch().Contains(normalizedSearchTerm) ||
-                (v.Description != null && v.Description.NormalizeForSearch().Contains(normalizedSearchTerm))
+                (v.HexCode != null && v.HexCode.NormalizeForSearch().Contains(normalizedSearchTerm))
             ).ToList();
         }
 
-        // Apply advanced filters (case-insensitive, diacritic-insensitive)
+        // Apply advanced filters
         if (!string.IsNullOrWhiteSpace(normalizedFilterCode))
         {
             allItems = allItems.Where(v => v.Code.NormalizeForSearch().Contains(normalizedFilterCode)).ToList();
@@ -82,11 +75,6 @@ public class VehicleTypeService : IVehicleTypeService
         if (!string.IsNullOrWhiteSpace(normalizedFilterName))
         {
             allItems = allItems.Where(v => v.Name.NormalizeForSearch().Contains(normalizedFilterName)).ToList();
-        }
-
-        if (!string.IsNullOrWhiteSpace(normalizedFilterDescription))
-        {
-            allItems = allItems.Where(v => v.Description != null && v.Description.NormalizeForSearch().Contains(normalizedFilterDescription)).ToList();
         }
 
         // Sort
@@ -101,17 +89,17 @@ public class VehicleTypeService : IVehicleTypeService
         var items = sortedItems
             .Skip((request.PageNumber - 1) * request.PageSize)
             .Take(request.PageSize)
-            .Select(v => new VehicleTypeDto
+            .Select(v => new VehicleColorDto
             {
                 Id = v.Id,
                 Code = v.Code,
                 Name = v.Name,
-                Description = v.Description,
+                HexCode = v.HexCode,
                 Status = v.Status
             })
             .ToList();
 
-        return new PagedResult<VehicleTypeDto>
+        return new PagedResult<VehicleColorDto>
         {
             Data = items,
             TotalCount = totalCount,
@@ -120,71 +108,70 @@ public class VehicleTypeService : IVehicleTypeService
         };
     }
 
-    public async Task<VehicleTypeDto?> GetByIdAsync(int id)
+    public async Task<VehicleColorDto?> GetByIdAsync(int id)
     {
         var entity = await _repository.GetByIdAsync(id);
         if (entity == null) return null;
 
-        return new VehicleTypeDto
+        return new VehicleColorDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
-            Description = entity.Description,
+            HexCode = entity.HexCode,
             Status = entity.Status
         };
     }
 
-    public async Task<VehicleTypeDto> CreateAsync(CreateVehicleTypeRequest request)
+    public async Task<VehicleColorDto> CreateAsync(CreateVehicleColorRequest request)
     {
-        // Check if code exists
-        if (await _context.VehicleTypes.AnyAsync(v => v.Code == request.Code && !v.IsDeleted))
+        if (await _context.VehicleColors.AnyAsync(v => v.Code == request.Code && !v.IsDeleted))
         {
             throw new InvalidOperationException($"Mã '{request.Code}' đã tồn tại");
         }
 
-        var entity = new VehicleType
+        var entity = new VehicleColor
         {
             Code = request.Code,
             Name = request.Name,
-            Description = request.Description,
+            HexCode = request.HexCode,
             Status = request.Status,
             CreatedDate = DateTime.UtcNow
         };
 
         await _repository.AddAsync(entity);
 
-        return new VehicleTypeDto
+        return new VehicleColorDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
-            Description = entity.Description,
+            HexCode = entity.HexCode,
             Status = entity.Status
         };
     }
 
-    public async Task<VehicleTypeDto> UpdateAsync(int id, UpdateVehicleTypeRequest request)
+    public async Task<VehicleColorDto> UpdateAsync(int id, UpdateVehicleColorRequest request)
     {
         var entity = await _repository.GetByIdAsync(id);
         if (entity == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy loại xe với ID {id}");
+            throw new KeyNotFoundException($"Không tìm thấy màu xe với ID {id}");
         }
 
         entity.Name = request.Name;
-        entity.Description = request.Description;
+        entity.HexCode = request.HexCode;
         entity.Status = request.Status;
         entity.ModifiedDate = DateTime.UtcNow;
 
         await _repository.UpdateAsync(entity);
 
-        return new VehicleTypeDto
+        return new VehicleColorDto
         {
             Id = entity.Id,
             Code = entity.Code,
             Name = entity.Name,
-            Description = entity.Description,
+            HexCode = entity.HexCode,
             Status = entity.Status
         };
     }
@@ -194,41 +181,40 @@ public class VehicleTypeService : IVehicleTypeService
         await _repository.DeleteAsync(id);
     }
 
-    public async Task<VehicleTypeDto> CopyAsync(int id)
+    public async Task<VehicleColorDto> CopyAsync(int id)
     {
         var source = await _repository.GetByIdAsync(id);
         if (source == null)
         {
-            throw new KeyNotFoundException($"Không tìm thấy loại xe với ID {id}");
+            throw new KeyNotFoundException($"Không tìm thấy màu xe với ID {id}");
         }
 
-        // Generate new code
         var baseCode = source.Code;
         var newCode = baseCode;
         var counter = 1;
-        while (await _context.VehicleTypes.AnyAsync(v => v.Code == newCode && !v.IsDeleted))
+        while (await _context.VehicleColors.AnyAsync(v => v.Code == newCode && !v.IsDeleted))
         {
             newCode = $"{baseCode}_{counter}";
             counter++;
         }
 
-        var newEntity = new VehicleType
+        var newEntity = new VehicleColor
         {
             Code = newCode,
             Name = $"{source.Name} (Copy)",
-            Description = source.Description,
+            HexCode = source.HexCode,
             Status = StatusConstants.Active,
             CreatedDate = DateTime.UtcNow
         };
 
         await _repository.AddAsync(newEntity);
 
-        return new VehicleTypeDto
+        return new VehicleColorDto
         {
             Id = newEntity.Id,
             Code = newEntity.Code,
             Name = newEntity.Name,
-            Description = newEntity.Description,
+            HexCode = newEntity.HexCode,
             Status = newEntity.Status
         };
     }
@@ -241,7 +227,7 @@ public class VehicleTypeService : IVehicleTypeService
         ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
 
         using var package = new ExcelPackage(fileStream);
-        
+
         if (package.Workbook.Worksheets.Count == 0)
         {
             response.Success = false;
@@ -263,19 +249,18 @@ public class VehicleTypeService : IVehicleTypeService
         }
 
         // Validate sheet name
-        if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.VehicleType))
+        if (!ExcelImportHelper.ValidateSheetName(worksheet, ExcelSheetNames.VehicleColor))
         {
             response.Success = false;
-            response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'";
-            errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleType}'" });
+            response.Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleColor}'";
+            errors.Add(new ImportError { Row = 0, Message = $"Tên sheet không đúng. Yêu cầu: '{ExcelSheetNames.VehicleColor}'" });
             response.Errors = errors;
             return response;
         }
 
         var rowCount = worksheet.Dimension.Rows;
-        response.TotalRows = rowCount - 1; // Exclude header row
+        response.TotalRows = rowCount - 1;
 
-        // Read headers using helper
         var headers = ExcelImportHelper.ReadHeaders(worksheet, 1);
 
         // Validate required columns
@@ -297,52 +282,19 @@ public class VehicleTypeService : IVehicleTypeService
         }
 
         // Get column indices
-        int codeCol = -1, nameCol = -1, descCol = -1, statusCol = -1;
+        int codeCol = ExcelImportHelper.GetColumnIndex(headers, "Mã", "Code");
+        int nameCol = ExcelImportHelper.GetColumnIndex(headers, "Tên", "Name");
+        int hexCodeCol = ExcelImportHelper.GetColumnIndex(headers, "Mã màu", "HexCode");
+        int statusCol = ExcelImportHelper.GetColumnIndex(headers, "Trạng thái", "Status");
 
-        if (headers.ContainsKey("Mã"))
-            codeCol = headers["Mã"];
-        else if (headers.ContainsKey("mã"))
-            codeCol = headers["mã"];
-        else if (headers.ContainsKey("Code"))
-            codeCol = headers["Code"];
-        else if (headers.ContainsKey("code"))
-            codeCol = headers["code"];
-
-        if (headers.ContainsKey("Tên"))
-            nameCol = headers["Tên"];
-        else if (headers.ContainsKey("tên"))
-            nameCol = headers["tên"];
-        else if (headers.ContainsKey("Name"))
-            nameCol = headers["Name"];
-        else if (headers.ContainsKey("name"))
-            nameCol = headers["name"];
-
-        if (headers.ContainsKey("Mô tả"))
-            descCol = headers["Mô tả"];
-        else if (headers.ContainsKey("mô tả"))
-            descCol = headers["mô tả"];
-        else if (headers.ContainsKey("Description"))
-            descCol = headers["Description"];
-        else if (headers.ContainsKey("description"))
-            descCol = headers["description"];
-
-        if (headers.ContainsKey("Trạng thái"))
-            statusCol = headers["Trạng thái"];
-        else if (headers.ContainsKey("trạng thái"))
-            statusCol = headers["trạng thái"];
-        else if (headers.ContainsKey("Status"))
-            statusCol = headers["Status"];
-        else if (headers.ContainsKey("status"))
-            statusCol = headers["status"];
-
-        var entitiesToAdd = new List<VehicleType>();
+        var entitiesToAdd = new List<VehicleColor>();
 
         // Validate all rows first before inserting
         for (int row = 2; row <= rowCount; row++)
         {
             var codeValue = ExcelImportHelper.GetCellValue(worksheet, row, codeCol);
             var nameValue = ExcelImportHelper.GetCellValue(worksheet, row, nameCol);
-            var descValue = descCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, descCol) : null;
+            var hexCodeValue = hexCodeCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, hexCodeCol) : null;
             var statusValue = statusCol > 0 ? ExcelImportHelper.GetCellValue(worksheet, row, statusCol) : null;
 
             // Validate required fields
@@ -350,88 +302,79 @@ public class VehicleTypeService : IVehicleTypeService
             if (codeError != null)
             {
                 errors.Add(new ImportError { Row = row, Message = codeError, Field = "Code" });
+                continue;
             }
 
             var nameError = ExcelImportHelper.ValidateRequired(nameValue, "Tên");
             if (nameError != null)
             {
                 errors.Add(new ImportError { Row = row, Message = nameError, Field = "Name" });
-            }
-
-            // Validate max length
-            if (codeValue != null)
-            {
-                var codeLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
-                if (codeLengthError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = codeLengthError, Field = "Code" });
-                }
-            }
-
-            if (nameValue != null)
-            {
-                var nameLengthError = ExcelImportHelper.ValidateMaxLength(nameValue, "Tên", 255);
-                if (nameLengthError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = nameLengthError, Field = "Name" });
-                }
-            }
-
-            if (descValue != null)
-            {
-                var descLengthError = ExcelImportHelper.ValidateMaxLength(descValue, "Mô tả", 500);
-                if (descLengthError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = descLengthError, Field = "Description" });
-                }
-            }
-
-            // Parse and validate status
-            string status = StatusConstants.Active;
-            if (statusValue != null)
-            {
-                var (statusCode, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
-                if (statusError != null)
-                {
-                    errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
-                }
-                else if (statusCode != null)
-                {
-                    status = statusCode;
-                }
-            }
-
-            // If there are errors for this row, skip to next row
-            if (errors.Any(e => e.Row == row))
-            {
                 continue;
             }
 
-            // Process code (uppercase)
-            var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
-
-            // Check if code already exists (only if no errors so far)
-            if (!string.IsNullOrWhiteSpace(code))
+            // Validate max length
+            var codeMaxLengthError = ExcelImportHelper.ValidateMaxLength(codeValue, "Mã", 50);
+            if (codeMaxLengthError != null)
             {
-                if (await _context.VehicleTypes.AnyAsync(v => v.Code == code && !v.IsDeleted))
+                errors.Add(new ImportError { Row = row, Message = codeMaxLengthError, Field = "Code" });
+                continue;
+            }
+
+            var nameMaxLengthError = ExcelImportHelper.ValidateMaxLength(nameValue, "Tên", 200);
+            if (nameMaxLengthError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = nameMaxLengthError, Field = "Name" });
+                continue;
+            }
+
+            if (hexCodeValue != null)
+            {
+                var hexCodeLengthError = ExcelImportHelper.ValidateMaxLength(hexCodeValue, "Mã màu", 7);
+                if (hexCodeLengthError != null)
                 {
-                    errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                    errors.Add(new ImportError { Row = row, Message = hexCodeLengthError, Field = "HexCode" });
                     continue;
                 }
             }
 
-            // All validations passed, prepare entity
-            entitiesToAdd.Add(new VehicleType
+            // Parse and validate status
+            var (parsedStatus, statusError) = ExcelImportHelper.TryParseStatus(statusValue, "Trạng thái");
+            if (statusError != null)
+            {
+                errors.Add(new ImportError { Row = row, Message = statusError, Field = "Status" });
+                continue;
+            }
+
+            var code = codeValue?.ToString()?.Trim().ToUpper() ?? string.Empty;
+            var name = nameValue?.ToString()?.Trim() ?? string.Empty;
+            var hexCode = hexCodeValue?.ToString()?.Trim();
+            var status = parsedStatus ?? StatusConstants.Active;
+
+            // Check if code already exists in DB
+            if (await _context.VehicleColors.AnyAsync(v => v.Code == code && !v.IsDeleted))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' đã tồn tại", Field = "Code" });
+                continue;
+            }
+
+            // Check for duplicate codes within the current import batch
+            if (entitiesToAdd.Any(e => e.Code == code))
+            {
+                errors.Add(new ImportError { Row = row, Message = $"Mã '{code}' bị trùng trong file Excel", Field = "Code" });
+                continue;
+            }
+
+            entitiesToAdd.Add(new VehicleColor
             {
                 Code = code,
-                Name = nameValue?.ToString()?.Trim() ?? string.Empty,
-                Description = descValue?.ToString()?.Trim(),
+                Name = name,
+                HexCode = hexCode,
                 Status = status,
                 CreatedDate = DateTime.UtcNow
             });
         }
 
-        // If there are any errors, don't import anything
+        // If there are errors, don't import anything
         if (errors.Any())
         {
             response.Success = false;
@@ -440,10 +383,10 @@ public class VehicleTypeService : IVehicleTypeService
             return response;
         }
 
-        // All validations passed, import all rows
+        // Import all valid rows
         if (entitiesToAdd.Any())
         {
-            await _context.VehicleTypes.AddRangeAsync(entitiesToAdd);
+            await _context.VehicleColors.AddRangeAsync(entitiesToAdd);
             await _context.SaveChangesAsync();
             response.SuccessCount = entitiesToAdd.Count;
         }
@@ -455,31 +398,28 @@ public class VehicleTypeService : IVehicleTypeService
 
     public async Task<MemoryStream> ExportExcelAsync(List<int>? ids)
     {
-        List<VehicleType> data;
+        List<VehicleColor> data;
         if (ids == null || ids.Count == 0)
         {
-            // Export all
-            data = await _context.VehicleTypes.Where(v => !v.IsDeleted).ToListAsync();
+            data = await _context.VehicleColors.Where(v => !v.IsDeleted).ToListAsync();
         }
         else
         {
-            // Export selected
-            data = await _context.VehicleTypes.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
+            data = await _context.VehicleColors.Where(v => !v.IsDeleted && ids.Contains(v.Id)).ToListAsync();
         }
 
-        // Column mapping: Property name -> Header name
         var columnMapping = new Dictionary<string, string>
         {
             { "Code", "Mã" },
             { "Name", "Tên" },
-            { "Description", "Mô tả" },
+            { "HexCode", "Mã màu" },
             { "Status", "Trạng thái" }
         };
 
         return await ExcelExportHelper.ExportToExcelAsync(
             data: data,
             columnMapping: columnMapping,
-            sheetName: "Loại xe"
+            sheetName: "Màu xe"
         );
     }
 
@@ -490,7 +430,7 @@ public class VehicleTypeService : IVehicleTypeService
             throw new ArgumentException("Danh sách ID không được rỗng");
         }
 
-        var entities = await _context.VehicleTypes
+        var entities = await _context.VehicleColors
             .Where(v => ids.Contains(v.Id) && !v.IsDeleted)
             .ToListAsync();
 
