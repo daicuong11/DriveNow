@@ -83,8 +83,8 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
       icon: <FileTextOutlined />,
       label: 'Cho thuê Xe',
       children: [
-        { key: '/rentals', label: 'Đơn thuê' },
-        { key: '/rentals/promotions', label: 'Khuyến mãi' }
+        { key: '/rental-orders', label: 'Đơn thuê' },
+        { key: '/promotions', label: 'Khuyến mãi' }
       ]
     },
     {
@@ -93,7 +93,7 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
       label: 'Hóa đơn',
       children: [
         { key: '/invoices', label: 'Danh sách Hóa đơn' },
-        { key: '/invoices/payments', label: 'Thanh toán' }
+        { key: '/payments', label: 'Thanh toán' }
       ]
     },
     {

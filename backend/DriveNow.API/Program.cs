@@ -71,6 +71,10 @@ builder.Services.AddScoped<DriveNow.Business.Interfaces.IDashboardService, Drive
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleService, DriveNow.Business.Services.VehicleService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleInOutService, DriveNow.Business.Services.VehicleInOutService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleMaintenanceService, DriveNow.Business.Services.VehicleMaintenanceService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IPromotionService, DriveNow.Business.Services.PromotionService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IRentalOrderService, DriveNow.Business.Services.RentalOrderService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IInvoiceService, DriveNow.Business.Services.InvoiceService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IPaymentService, DriveNow.Business.Services.PaymentService>();
 
 // SignalR
 builder.Services.AddSignalR();

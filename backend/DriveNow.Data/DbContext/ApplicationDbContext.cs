@@ -23,11 +23,15 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<Customer> Customers { get; set; }
     public DbSet<Employee> Employees { get; set; }
     public DbSet<SystemConfig> SystemConfigs { get; set; }
+    public DbSet<Promotion> Promotions { get; set; }
 
     // Business Entities
     public DbSet<Vehicle> Vehicles { get; set; }
     public DbSet<RentalOrder> RentalOrders { get; set; }
+    public DbSet<RentalStatusHistory> RentalStatusHistories { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
+    public DbSet<InvoiceDetail> InvoiceDetails { get; set; }
+    public DbSet<Payment> Payments { get; set; }
     public DbSet<VehicleInOut> VehicleInOuts { get; set; }
     public DbSet<VehicleMaintenance> VehicleMaintenances { get; set; }
     public DbSet<VehicleHistory> VehicleHistories { get; set; }
@@ -101,9 +105,20 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
             entity.HasIndex(e => e.Code).IsUnique();
         });
 
+        modelBuilder.Entity<Promotion>(entity =>
+        {
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.Property(e => e.Value).HasPrecision(18, 2);
+            entity.Property(e => e.MinAmount).HasPrecision(18, 2);
+            entity.Property(e => e.MaxDiscount).HasPrecision(18, 2);
+        });
+
         // Business Entities - Configure foreign keys to avoid cascade conflicts
         modelBuilder.Entity<Invoice>(entity =>
         {
+            entity.HasIndex(e => e.InvoiceNumber).IsUnique();
+            entity.HasIndex(e => e.RentalOrderId).IsUnique();
+            
             entity.HasOne(e => e.Customer)
                   .WithMany(e => e.Invoices)
                   .HasForeignKey(e => e.CustomerId)
@@ -115,15 +130,45 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             // Configure decimal precision for money fields
-            entity.Property(e => e.TotalAmount)
-                  .HasPrecision(18, 2);
+            entity.Property(e => e.SubTotal).HasPrecision(18, 2);
+            entity.Property(e => e.TaxRate).HasPrecision(5, 2);
+            entity.Property(e => e.TaxAmount).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.PaidAmount).HasPrecision(18, 2);
+            entity.Property(e => e.RemainingAmount).HasPrecision(18, 2);
+        });
 
-            entity.Property(e => e.PaidAmount)
-                  .HasPrecision(18, 2);
+        modelBuilder.Entity<InvoiceDetail>(entity =>
+        {
+            entity.HasOne(e => e.Invoice)
+                  .WithMany(e => e.InvoiceDetails)
+                  .HasForeignKey(e => e.InvoiceId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Configure decimal precision
+            entity.Property(e => e.Quantity).HasPrecision(18, 2);
+            entity.Property(e => e.UnitPrice).HasPrecision(18, 2);
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<Payment>(entity =>
+        {
+            entity.HasIndex(e => e.PaymentNumber).IsUnique();
+            
+            entity.HasOne(e => e.Invoice)
+                  .WithMany(e => e.Payments)
+                  .HasForeignKey(e => e.InvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure decimal precision
+            entity.Property(e => e.Amount).HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<RentalOrder>(entity =>
         {
+            entity.HasIndex(e => e.OrderNumber).IsUnique();
+            
             entity.HasOne(e => e.Customer)
                   .WithMany(e => e.RentalOrders)
                   .HasForeignKey(e => e.CustomerId)
@@ -137,7 +182,22 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
             entity.HasOne(e => e.Employee)
                   .WithMany(e => e.RentalOrders)
                   .HasForeignKey(e => e.EmployeeId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure decimal precision for money fields
+            entity.Property(e => e.DailyRentalPrice).HasPrecision(18, 2);
+            entity.Property(e => e.SubTotal).HasPrecision(18, 2);
+            entity.Property(e => e.DiscountAmount).HasPrecision(18, 2);
+            entity.Property(e => e.TotalAmount).HasPrecision(18, 2);
+            entity.Property(e => e.DepositAmount).HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<RentalStatusHistory>(entity =>
+        {
+            entity.HasOne(e => e.RentalOrder)
+                  .WithMany(e => e.StatusHistories)
+                  .HasForeignKey(e => e.RentalOrderId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Vehicle>(entity =>

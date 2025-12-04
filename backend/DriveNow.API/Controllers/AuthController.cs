@@ -73,7 +73,7 @@ public class AuthController : ControllerBase
             await _authService.ForgotPasswordAsync(request.Email);
             return Ok(new { success = true, message = "Đã gửi email đặt lại mật khẩu" });
         }
-        catch (Exception ex)
+        catch (Exception)
         {
             return StatusCode(500, new { success = false, message = "Lỗi hệ thống" });
         }

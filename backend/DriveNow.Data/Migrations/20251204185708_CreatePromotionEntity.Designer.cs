@@ -4,6 +4,7 @@ using DriveNow.Data.DbContext;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DriveNow.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251204185708_CreatePromotionEntity")]
+    partial class CreatePromotionEntity
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -175,19 +178,12 @@ namespace DriveNow.Data.Migrations
                     b.Property<int>("CustomerId")
                         .HasColumnType("int");
 
-                    b.Property<decimal>("DiscountAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<DateTime>("DueDate")
-                        .HasColumnType("datetime2");
-
                     b.Property<DateTime>("InvoiceDate")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("InvoiceNumber")
                         .IsRequired()
-                        .HasColumnType("nvarchar(450)");
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -198,38 +194,16 @@ namespace DriveNow.Data.Migrations
                     b.Property<DateTime?>("ModifiedDate")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
                     b.Property<decimal>("PaidAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("RemainingAmount")
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
                     b.Property<int>("RentalOrderId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("RentalOrderId1")
-                        .HasColumnType("int");
-
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
-
-                    b.Property<decimal>("SubTotal")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TaxAmount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<decimal>("TaxRate")
-                        .HasPrecision(5, 2)
-                        .HasColumnType("decimal(5,2)");
 
                     b.Property<decimal>("TotalAmount")
                         .HasPrecision(18, 2)
@@ -239,67 +213,9 @@ namespace DriveNow.Data.Migrations
 
                     b.HasIndex("CustomerId");
 
-                    b.HasIndex("InvoiceNumber")
-                        .IsUnique();
-
-                    b.HasIndex("RentalOrderId")
-                        .IsUnique();
-
-                    b.HasIndex("RentalOrderId1");
+                    b.HasIndex("RentalOrderId");
 
                     b.ToTable("Invoices");
-                });
-
-            modelBuilder.Entity("DriveNow.Data.Entities.InvoiceDetail", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("InvoiceId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<decimal>("Quantity")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("int");
-
-                    b.Property<decimal>("UnitPrice")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.ToTable("InvoiceDetails");
                 });
 
             modelBuilder.Entity("DriveNow.Data.Entities.PasswordResetToken", b =>
@@ -334,66 +250,6 @@ namespace DriveNow.Data.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("PasswordResetTokens");
-                });
-
-            modelBuilder.Entity("DriveNow.Data.Entities.Payment", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(18, 2)
-                        .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("BankAccount")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CreatedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreatedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("InvoiceId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("IsDeleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ModifiedBy")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("ModifiedDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Notes")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("PaymentDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PaymentMethod")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("PaymentNumber")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("TransactionCode")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("InvoiceId");
-
-                    b.HasIndex("PaymentNumber")
-                        .IsUnique();
-
-                    b.ToTable("Payments");
                 });
 
             modelBuilder.Entity("DriveNow.Data.Entities.Promotion", b =>
@@ -1208,24 +1064,9 @@ namespace DriveNow.Data.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
-                    b.HasOne("DriveNow.Data.Entities.RentalOrder", null)
-                        .WithMany("Invoices")
-                        .HasForeignKey("RentalOrderId1");
-
                     b.Navigation("Customer");
 
                     b.Navigation("RentalOrder");
-                });
-
-            modelBuilder.Entity("DriveNow.Data.Entities.InvoiceDetail", b =>
-                {
-                    b.HasOne("DriveNow.Data.Entities.Invoice", "Invoice")
-                        .WithMany("InvoiceDetails")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("DriveNow.Data.Entities.PasswordResetToken", b =>
@@ -1237,17 +1078,6 @@ namespace DriveNow.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("DriveNow.Data.Entities.Payment", b =>
-                {
-                    b.HasOne("DriveNow.Data.Entities.Invoice", "Invoice")
-                        .WithMany("Payments")
-                        .HasForeignKey("InvoiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Invoice");
                 });
 
             modelBuilder.Entity("DriveNow.Data.Entities.RefreshToken", b =>
@@ -1393,17 +1223,8 @@ namespace DriveNow.Data.Migrations
                     b.Navigation("VehicleInOuts");
                 });
 
-            modelBuilder.Entity("DriveNow.Data.Entities.Invoice", b =>
-                {
-                    b.Navigation("InvoiceDetails");
-
-                    b.Navigation("Payments");
-                });
-
             modelBuilder.Entity("DriveNow.Data.Entities.RentalOrder", b =>
                 {
-                    b.Navigation("Invoices");
-
                     b.Navigation("StatusHistories");
                 });
 

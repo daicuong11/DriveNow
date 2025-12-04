@@ -16,6 +16,12 @@ import VehiclesPage from '../../pages/vehicles/VehiclesPage'
 import VehicleDetailPage from '../../pages/vehicles/VehicleDetailPage'
 import VehicleInOutsPage from '../../pages/vehicles/VehicleInOutsPage'
 import VehicleMaintenancesPage from '../../pages/vehicles/VehicleMaintenancesPage'
+import RentalOrdersPage from '../../pages/rentals/RentalOrdersPage'
+import RentalOrderDetailPage from '../../pages/rentals/RentalOrderDetailPage'
+import PromotionsPage from '../../pages/rentals/PromotionsPage'
+import InvoicesPage from '../../pages/invoices/InvoicesPage'
+import InvoiceDetailPage from '../../pages/invoices/InvoiceDetailPage'
+import PaymentsPage from '../../pages/invoices/PaymentsPage'
 import NotFound from '../../pages/NotFound'
 
 const { Content } = Layout
@@ -50,6 +56,14 @@ const AppLayout = () => {
                     <Route path='/vehicles/:id' element={<VehicleDetailPage />} />
                     <Route path='/vehicles/in-out' element={<VehicleInOutsPage />} />
                     <Route path='/vehicles/maintenance' element={<VehicleMaintenancesPage />} />
+                    {/* Rental Management Routes */}
+                    <Route path='/rental-orders' element={<RentalOrdersPage />} />
+                    <Route path='/rental-orders/:id' element={<RentalOrderDetailPage />} />
+                    <Route path='/promotions' element={<PromotionsPage />} />
+                    {/* Invoice & Payment Routes */}
+                    <Route path='/invoices' element={<InvoicesPage />} />
+                    <Route path='/invoices/:id' element={<InvoiceDetailPage />} />
+                    <Route path='/payments' element={<PaymentsPage />} />
                     {/* Legacy routes - redirect to new routes */}
                     <Route path='/master-data/vehicle-types' element={<Navigate to='/vehicle-types' replace />} />
                     <Route path='/master-data/vehicle-brands' element={<Navigate to='/vehicle-brands' replace />} />
