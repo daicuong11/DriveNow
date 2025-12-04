@@ -11,5 +11,6 @@ public static class ExcelSheetNames
     public const string Customer = "Khách hàng";
     public const string Employee = "Nhân viên";
     public const string SystemConfig = "Cấu hình hệ thống";
+    public const string Vehicle = "Xe";
 }
 

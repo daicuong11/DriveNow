@@ -42,6 +42,7 @@ DriveNow/
 cd backend
 dotnet restore
 dotnet build
+dotnet ef database update --project DriveNow.Data --startup-project DriveNow.API
 ```
 
 ### Frontend

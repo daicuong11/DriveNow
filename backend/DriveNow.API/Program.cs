@@ -68,6 +68,12 @@ builder.Services.AddScoped<DriveNow.Business.Interfaces.ICustomerService, DriveN
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IEmployeeService, DriveNow.Business.Services.EmployeeService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.ISystemConfigService, DriveNow.Business.Services.SystemConfigService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IDashboardService, DriveNow.Business.Services.DashboardService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleService, DriveNow.Business.Services.VehicleService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleInOutService, DriveNow.Business.Services.VehicleInOutService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IVehicleMaintenanceService, DriveNow.Business.Services.VehicleMaintenanceService>();
+
+// SignalR
+builder.Services.AddSignalR();
 
 // Register Repositories
 builder.Services.AddScoped(typeof(DriveNow.Data.Interfaces.IRepository<>), typeof(DriveNow.Data.Repositories.Repository<>));
@@ -157,17 +163,33 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Logging - Configure Serilog
+// Logging - Configure Serilog với nhiều enrichers
 Log.Logger = new LoggerConfiguration()
     .ReadFrom.Configuration(builder.Configuration)
     .Enrich.FromLogContext()
+    .Enrich.WithProperty("Application", "DriveNow.API")
     .CreateLogger();
 
 builder.Host.UseSerilog((context, services, configuration) => configuration
     .ReadFrom.Configuration(context.Configuration)
     .ReadFrom.Services(services)
     .Enrich.FromLogContext()
-    .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+    .Enrich.WithProperty("Application", "DriveNow.API")
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:HH:mm:ss.fff} {Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "logs/drivenow-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}{NewLine}",
+        shared: true)
+    .WriteTo.File(
+        path: "logs/drivenow-errors-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 90,
+        restrictedToMinimumLevel: Serilog.Events.LogEventLevel.Error,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff zzz}] [{Level:u3}] [{SourceContext}] {Message:lj}{NewLine}{Exception}{NewLine}",
+        shared: true)
 );
 
 var app = builder.Build();
@@ -211,8 +233,46 @@ app.UseCors("AllowReactApp");
 // For HTTP-only profile, this will be skipped automatically
 app.UseHttpsRedirection();
 
+// Static files for uploaded images - MUST be before authentication/authorization
+// Configure static files to serve from wwwroot with CORS and proper content types
+var staticFileOptions = new Microsoft.AspNetCore.Builder.StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        // Add CORS headers for static files
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Origin", "*");
+        ctx.Context.Response.Headers.Append("Access-Control-Allow-Methods", "GET, OPTIONS");
+        ctx.Context.Response.Headers.Append("Cache-Control", "public,max-age=31536000");
+    },
+    // Ensure files are served with correct content type
+    ContentTypeProvider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider
+    {
+        Mappings =
+        {
+            [".jpg"] = "image/jpeg",
+            [".jpeg"] = "image/jpeg",
+            [".png"] = "image/png",
+            [".gif"] = "image/gif"
+        }
+    },
+    // Request path must match the file path
+    RequestPath = ""
+};
+app.UseStaticFiles(staticFileOptions);
+
+// Request logging middleware (should be before exception handling)
+app.UseMiddleware<DriveNow.API.Middleware.RequestLoggingMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Exception handling middleware (should be after authentication/authorization)
+app.UseMiddleware<DriveNow.API.Middleware.ExceptionHandlingMiddleware>();
+
+// SignalR
+app.MapHub<DriveNow.API.Hubs.VehicleHub>("/hubs/vehicle");
+
+// Map controllers - ImagesController has [AllowAnonymous] so it should work
 app.MapControllers();
 
 app.Run();

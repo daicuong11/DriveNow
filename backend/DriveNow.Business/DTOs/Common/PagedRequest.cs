@@ -14,5 +14,14 @@ public class PagedRequest
     public string? FilterStatus { get; set; }
     public string? FilterCountry { get; set; }
     public string? FilterDescription { get; set; }
+    
+    // Vehicle specific filters
+    public int? FilterVehicleTypeId { get; set; }
+    public int? FilterVehicleBrandId { get; set; }
+    
+    // VehicleInOut specific filters
+    public int? FilterVehicleId { get; set; }
+    public string? FilterType { get; set; }
+    public int? FilterEmployeeId { get; set; }
 }
 

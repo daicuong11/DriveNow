@@ -11,6 +11,7 @@ import "./styles/custom-table.css";
 import "./styles/logo.css";
 import "./styles/sidebar.css";
 import "./styles/header.css";
+import "./styles/loading-overlay.css";
 import "react-toastify/dist/ReactToastify.css";
 import "./styles/toast.css";
 

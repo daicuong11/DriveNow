@@ -29,6 +29,8 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<RentalOrder> RentalOrders { get; set; }
     public DbSet<Invoice> Invoices { get; set; }
     public DbSet<VehicleInOut> VehicleInOuts { get; set; }
+    public DbSet<VehicleMaintenance> VehicleMaintenances { get; set; }
+    public DbSet<VehicleHistory> VehicleHistories { get; set; }
 
     protected override void OnModelCreating(Microsoft.EntityFrameworkCore.ModelBuilder modelBuilder)
     {
@@ -128,7 +130,7 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.Vehicle)
-                  .WithMany()
+                  .WithMany(e => e.RentalOrders)
                   .HasForeignKey(e => e.VehicleId)
                   .OnDelete(DeleteBehavior.Restrict);
 
@@ -140,6 +142,10 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
 
         modelBuilder.Entity<Vehicle>(entity =>
         {
+            entity.HasIndex(e => e.Code).IsUnique();
+            entity.HasIndex(e => e.LicensePlate).IsUnique();
+            entity.HasIndex(e => e.ChassisNumber).IsUnique().HasFilter("[ChassisNumber] IS NOT NULL");
+            
             entity.HasOne(e => e.VehicleType)
                   .WithMany(e => e.Vehicles)
                   .HasForeignKey(e => e.VehicleTypeId)
@@ -154,19 +160,43 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
                   .WithMany(e => e.Vehicles)
                   .HasForeignKey(e => e.VehicleColorId)
                   .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure decimal precision for DailyRentalPrice
+            entity.Property(e => e.DailyRentalPrice)
+                  .HasPrecision(18, 2);
         });
 
         modelBuilder.Entity<VehicleInOut>(entity =>
         {
             entity.HasOne(e => e.Vehicle)
-                  .WithMany()
+                  .WithMany(e => e.VehicleInOuts)
                   .HasForeignKey(e => e.VehicleId)
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.Employee)
                   .WithMany(e => e.VehicleInOuts)
                   .HasForeignKey(e => e.EmployeeId)
-                  .OnDelete(DeleteBehavior.SetNull);
+                  .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<VehicleMaintenance>(entity =>
+        {
+            entity.HasOne(e => e.Vehicle)
+                  .WithMany()
+                  .HasForeignKey(e => e.VehicleId)
+                  .OnDelete(DeleteBehavior.Restrict);
+
+            // Configure decimal precision for Cost
+            entity.Property(e => e.Cost)
+                  .HasPrecision(18, 2);
+        });
+
+        modelBuilder.Entity<VehicleHistory>(entity =>
+        {
+            entity.HasOne(e => e.Vehicle)
+                  .WithMany()
+                  .HasForeignKey(e => e.VehicleId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

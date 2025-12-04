@@ -156,13 +156,15 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
       collapsedWidth={80}
       className='custom-sidebar'
       style={{
-        overflow: 'auto',
+        overflow: 'hidden',
         height: '100vh',
         position: 'fixed',
         left: 0,
         top: 0,
         bottom: 0,
-        zIndex: 1000
+        zIndex: 1000,
+        display: 'flex',
+        flexDirection: 'column'
       }}
       trigger={null}
     >
@@ -177,7 +179,8 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
           alignItems: 'center',
           borderBottom: '1px solid rgba(255, 255, 255, 0.1)',
           gap: '12px',
-          flexDirection: collapsed ? 'column' : 'row'
+          flexDirection: collapsed ? 'column' : 'row',
+          flexShrink: 0
         }}
       >
         <div
@@ -233,7 +236,8 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
         <div
           style={{
             margin: '16px',
-            padding: '0'
+            padding: '0',
+            flexShrink: 0
           }}
         >
           <Input
@@ -248,17 +252,27 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
         </div>
       )}
 
-      {/* Menu */}
-      <Menu
-        theme='dark'
-        mode='inline'
-        selectedKeys={[location.pathname]}
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        items={filteredMenuItems as any}
-        onClick={handleMenuClick}
-        inlineCollapsed={collapsed}
-        className='custom-menu'
-      />
+      {/* Menu Container with Scroll */}
+      <div
+        style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 0
+        }}
+        className='sidebar-menu-container'
+      >
+        <Menu
+          theme='dark'
+          mode='inline'
+          selectedKeys={[location.pathname]}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          items={filteredMenuItems as any}
+          onClick={handleMenuClick}
+          inlineCollapsed={collapsed}
+          className='custom-menu'
+        />
+      </div>
     </Sider>
   )
 }

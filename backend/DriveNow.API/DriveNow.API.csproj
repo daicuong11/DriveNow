@@ -25,4 +25,9 @@
     <ProjectReference Include="..\DriveNow.Common\DriveNow.Common.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- Exclude uploaded files from build (they are generated at runtime) -->
+    <Content Remove="wwwroot\uploads\**\*" />
+  </ItemGroup>
+
 </Project>

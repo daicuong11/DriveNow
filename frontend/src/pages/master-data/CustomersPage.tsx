@@ -12,6 +12,7 @@ import CustomTable from '../../components/common/CustomTable'
 import useDebounce from '../../hooks/useDebounce'
 import StatusSelect from '../../components/common/StatusSelect'
 import CodeInput from '../../components/common/CodeInput'
+import { validateCode } from '../../utils/validation'
 import ImportButton from '../../components/common/ImportButton'
 import ExportButton from '../../components/common/ExportButton'
 import ActionSelect from '../../components/common/ActionSelect'
@@ -488,7 +489,14 @@ const CustomersPage = () => {
         width={600}
       >
         <Form form={form} layout='vertical'>
-          <Form.Item name='code' label='Mã' rules={[{ required: true, message: 'Vui lòng nhập mã' }]}>
+          <Form.Item
+            name='code'
+            label='Mã'
+            rules={[
+              { required: true, message: 'Vui lòng nhập mã' },
+              { validator: validateCode }
+            ]}
+          >
             <CodeInput disabled={!!editingId} />
           </Form.Item>
           <Form.Item name='fullName' label='Họ tên' rules={[{ required: true, message: 'Vui lòng nhập họ tên' }]}>

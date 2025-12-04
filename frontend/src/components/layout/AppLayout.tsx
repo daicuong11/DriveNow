@@ -12,6 +12,10 @@ import VehicleColorsPage from '../../pages/master-data/VehicleColorsPage'
 import CustomersPage from '../../pages/master-data/CustomersPage'
 import EmployeesPage from '../../pages/master-data/EmployeesPage'
 import SystemConfigsPage from '../../pages/master-data/SystemConfigsPage'
+import VehiclesPage from '../../pages/vehicles/VehiclesPage'
+import VehicleDetailPage from '../../pages/vehicles/VehicleDetailPage'
+import VehicleInOutsPage from '../../pages/vehicles/VehicleInOutsPage'
+import VehicleMaintenancesPage from '../../pages/vehicles/VehicleMaintenancesPage'
 import NotFound from '../../pages/NotFound'
 
 const { Content } = Layout
@@ -41,6 +45,11 @@ const AppLayout = () => {
                     <Route path='/customers' element={<CustomersPage />} />
                     <Route path='/employees' element={<EmployeesPage />} />
                     <Route path='/system-configs' element={<SystemConfigsPage />} />
+                    {/* Vehicle Management Routes */}
+                    <Route path='/vehicles' element={<VehiclesPage />} />
+                    <Route path='/vehicles/:id' element={<VehicleDetailPage />} />
+                    <Route path='/vehicles/in-out' element={<VehicleInOutsPage />} />
+                    <Route path='/vehicles/maintenance' element={<VehicleMaintenancesPage />} />
                     {/* Legacy routes - redirect to new routes */}
                     <Route path='/master-data/vehicle-types' element={<Navigate to='/vehicle-types' replace />} />
                     <Route path='/master-data/vehicle-brands' element={<Navigate to='/vehicle-brands' replace />} />
