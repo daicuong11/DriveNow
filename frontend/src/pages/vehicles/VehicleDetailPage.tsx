@@ -3,7 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button, Form, Input, InputNumber, DatePicker, Tabs, Space, Card, Row, Col, Divider, App } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, CopyOutlined, DeleteOutlined } from '@ant-design/icons'
 import { showSuccess, showError } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import dayjs from 'dayjs'
 import CodeInput from '../../components/common/CodeInput'
@@ -52,6 +54,8 @@ const VehicleDetailPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { modal } = App.useApp()
+  const canCreate = useHasPermission('vehicles.create')
+  const canDelete = useHasPermission('vehicles.delete')
   const [form] = Form.useForm()
   const [activeTab, setActiveTab] = useState('general')
   const [initialValues, setInitialValues] = useState<Record<string, any> | null>(null)
@@ -189,7 +193,7 @@ const VehicleDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo mới thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo mới thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -223,7 +227,7 @@ const VehicleDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -239,7 +243,7 @@ const VehicleDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicles'] })
     },
     onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -637,12 +641,16 @@ const VehicleDetailPage = () => {
           {!isNew && (
             <>
               <RefreshButton onRefresh={handleRefresh} loading={isRefreshing} />
-              <Button icon={<CopyOutlined />} onClick={handleCopy}>
-                Tạo bản sao
-              </Button>
-              <Button danger icon={<DeleteOutlined />} onClick={handleDelete} loading={deleteMutation.isPending}>
-                Xóa
-              </Button>
+              {canCreate && (
+                <Button icon={<CopyOutlined />} onClick={handleCopy}>
+                  Tạo bản sao
+                </Button>
+              )}
+              {canDelete && (
+                <Button danger icon={<DeleteOutlined />} onClick={handleDelete} loading={deleteMutation.isPending}>
+                  Xóa
+                </Button>
+              )}
             </>
           )}
           <Button

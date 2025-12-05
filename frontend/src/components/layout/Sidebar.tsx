@@ -11,6 +11,8 @@ import {
   MenuUnfoldOutlined
 } from '@ant-design/icons'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { useSelector } from 'react-redux'
+import type { RootState } from '../../store/store'
 import Logo from '../common/Logo'
 import '../../styles/sidebar.css'
 
@@ -30,6 +32,7 @@ interface MenuItem {
 const Sidebar = ({ onCollapse }: SidebarProps) => {
   const navigate = useNavigate()
   const location = useLocation()
+  const userRole = useSelector((state: RootState) => state.auth.user?.role)
   const [collapsed, setCollapsed] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -106,14 +109,23 @@ const Sidebar = ({ onCollapse }: SidebarProps) => {
         { key: '/vehicle-colors', label: 'Màu xe' },
         { key: '/customers', label: 'Khách hàng' },
         { key: '/employees', label: 'Nhân viên' },
-        { key: '/system-configs', label: 'Cấu hình hệ thống' }
+        ...(userRole === 'Admin' ? [{ key: '/system-configs', label: 'Cấu hình hệ thống' }] : [])
       ]
     },
-    {
-      key: '/users',
-      icon: <UserOutlined />,
-      label: 'Người dùng'
-    }
+    // Only show Users menu for Admin
+    ...(userRole === 'Admin'
+      ? [
+          {
+            key: 'users',
+            icon: <UserOutlined />,
+            label: 'Người dùng',
+            children: [
+              { key: '/users', label: 'Danh sách Người dùng' },
+              { key: '/users/permissions', label: 'Phân quyền' }
+            ]
+          }
+        ]
+      : [])
   ]
 
   // Filter menu items based on search term

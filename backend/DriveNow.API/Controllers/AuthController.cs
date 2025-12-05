@@ -70,8 +70,14 @@ public class AuthController : ControllerBase
     {
         try
         {
-            await _authService.ForgotPasswordAsync(request.Email);
-            return Ok(new { success = true, message = "Đã gửi email đặt lại mật khẩu" });
+            var token = await _authService.ForgotPasswordAsync(request.Email);
+            if (string.IsNullOrEmpty(token))
+            {
+                // Don't reveal if email exists for security
+                return Ok(new { success = true, message = "Nếu email tồn tại, bạn sẽ nhận được link đặt lại mật khẩu" });
+            }
+            // Temporary: return token directly (in production, send via email)
+            return Ok(new { success = true, data = new { token }, message = "Token đặt lại mật khẩu đã được tạo" });
         }
         catch (Exception)
         {

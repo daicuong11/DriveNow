@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Modal, Form, Popconfirm, Badge } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -33,6 +35,11 @@ interface PagedResult<T> {
 }
 
 const VehicleColorsPage = () => {
+  const canCreate = useHasPermission('masterdata.create')
+  const canEdit = useHasPermission('masterdata.edit')
+  const canDelete = useHasPermission('masterdata.delete')
+  const canImport = useHasPermission('masterdata.import')
+  const canExport = useHasPermission('masterdata.export')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form] = Form.useForm()
@@ -378,11 +385,13 @@ const VehicleColorsPage = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />
-          <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-            <Button type='link' danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canEdit && <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />}
+          {canCreate && <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />}
+          {canDelete && (
+            <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
+              <Button type='link' danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -411,19 +420,23 @@ const VehicleColorsPage = () => {
             style={{ width: 250 }}
           />
           <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-          <ImportButton onImport={handleImport} loading={isImporting} />
-          <ExportButton
-            selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
-            apiEndpoint='/VehicleColors/export'
-            filename='VehicleColor'
-            loading={false}
-            disabled={false}
-          />
-          <ActionSelect
-            onAdd={handleAdd}
-            onDelete={handleDeleteMultiple}
-            deleteDisabled={selectedRowKeys.length === 0}
-          />
+          {canImport && <ImportButton onImport={handleImport} loading={isImporting} />}
+          {canExport && (
+            <ExportButton
+              selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
+              apiEndpoint='/VehicleColors/export'
+              filename='VehicleColor'
+              loading={false}
+              disabled={false}
+            />
+          )}
+          {(canCreate || canDelete) && (
+            <ActionSelect
+              onAdd={canCreate ? handleAdd : undefined}
+              onDelete={canDelete ? handleDeleteMultiple : undefined}
+              deleteDisabled={selectedRowKeys.length === 0}
+            />
+          )}
         </Space>
       </div>
 

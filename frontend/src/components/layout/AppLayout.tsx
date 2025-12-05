@@ -22,6 +22,11 @@ import PromotionsPage from '../../pages/rentals/PromotionsPage'
 import InvoicesPage from '../../pages/invoices/InvoicesPage'
 import InvoiceDetailPage from '../../pages/invoices/InvoiceDetailPage'
 import PaymentsPage from '../../pages/invoices/PaymentsPage'
+import UsersPage from '../../pages/users/UsersPage'
+import UserDetailPage from '../../pages/users/UserDetailPage'
+import RolePermissionsPage from '../../pages/users/RolePermissionsPage'
+import ForgotPasswordPage from '../../pages/auth/ForgotPassword'
+import ResetPasswordPage from '../../pages/auth/ResetPassword'
 import NotFound from '../../pages/NotFound'
 
 const { Content } = Layout
@@ -32,6 +37,8 @@ const AppLayout = () => {
   return (
     <Routes>
       <Route path='/login' element={<Login />} />
+      <Route path='/forgot-password' element={<ForgotPasswordPage />} />
+      <Route path='/reset-password' element={<ResetPasswordPage />} />
       <Route
         path='/*'
         element={
@@ -64,6 +71,10 @@ const AppLayout = () => {
                     <Route path='/invoices' element={<InvoicesPage />} />
                     <Route path='/invoices/:id' element={<InvoiceDetailPage />} />
                     <Route path='/payments' element={<PaymentsPage />} />
+                    {/* User Management Routes (Admin only) */}
+                    <Route path='/users' element={<UsersPage />} />
+                    <Route path='/users/:id' element={<UserDetailPage />} />
+                    <Route path='/users/permissions' element={<RolePermissionsPage />} />
                     {/* Legacy routes - redirect to new routes */}
                     <Route path='/master-data/vehicle-types' element={<Navigate to='/vehicle-types' replace />} />
                     <Route path='/master-data/vehicle-brands' element={<Navigate to='/vehicle-brands' replace />} />

@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Popconfirm, Tag } from 'antd'
 import { showSuccess, showError } from '../../utils/notifications'
-import { EyeOutlined, SearchOutlined, CopyOutlined, DollarOutlined } from '@ant-design/icons'
+import { getErrorMessage } from '../../utils/errorHandler'
+import { EyeOutlined, SearchOutlined, CopyOutlined, DollarOutlined, DeleteOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -44,6 +46,7 @@ interface PagedResult<T> {
 
 const InvoicesPage = () => {
   const navigate = useNavigate()
+  const canDelete = useHasPermission('invoices.delete')
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearchTerm = useDebounce(searchInput, 500)
@@ -111,8 +114,8 @@ const InvoicesPage = () => {
       showSuccess('Xóa hóa đơn thành công!')
       queryClient.invalidateQueries({ queryKey: ['invoices'] })
     },
-    onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+    onError: (error: any) => {
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -125,8 +128,8 @@ const InvoicesPage = () => {
       showSuccess('Tạo bản sao hóa đơn thành công!')
       navigate(`/invoices/${data.id}`)
     },
-    onError: () => {
-      showError('Tạo bản sao thất bại. Vui lòng thử lại!')
+    onError: (error: any) => {
+      showError(getErrorMessage(error, 'Tạo bản sao thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -276,9 +279,9 @@ const InvoicesPage = () => {
             />
           )}
           <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record.id)} title='Tạo bản sao' />
-          {record.status === 'Unpaid' && (
+          {record.status === 'Unpaid' && canDelete && (
             <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-              <Button type='link' danger title='Xóa' />
+              <Button type='link' danger icon={<DeleteOutlined />} title='Xóa' />
             </Popconfirm>
           )}
         </Space>

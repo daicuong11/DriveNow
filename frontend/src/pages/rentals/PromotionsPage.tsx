@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Modal, Form, Popconfirm, Badge, message, Radio, Switch } from 'antd'
 import { showSuccess, showError } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import api from '../../services/api/axios'
@@ -139,7 +140,7 @@ const PromotionsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['promotions'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo mới thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo mới thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -160,7 +161,7 @@ const PromotionsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['promotions'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -173,7 +174,7 @@ const PromotionsPage = () => {
       queryClient.invalidateQueries({ queryKey: ['promotions'] })
     },
     onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -220,7 +221,7 @@ const PromotionsPage = () => {
       })
       setIsModalOpen(true)
     } catch (error: any) {
-      showError(error.response?.data?.message || 'Không thể tải dữ liệu để copy. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Không thể tải dữ liệu để copy. Vui lòng thử lại!'))
     }
   }
 

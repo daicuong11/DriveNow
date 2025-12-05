@@ -23,5 +23,9 @@ public class PagedRequest
     public int? FilterVehicleId { get; set; }
     public string? FilterType { get; set; }
     public int? FilterEmployeeId { get; set; }
+    
+    // User specific filters
+    public string? FilterRole { get; set; }
+    public bool? FilterIsActive { get; set; }
 }
 

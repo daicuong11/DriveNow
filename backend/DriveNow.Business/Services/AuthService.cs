@@ -16,11 +16,13 @@ public class AuthService : IAuthService
 {
     private readonly ApplicationDbContext _context;
     private readonly IConfiguration _configuration;
+    private readonly IPermissionService _permissionService;
 
-    public AuthService(ApplicationDbContext context, IConfiguration configuration)
+    public AuthService(ApplicationDbContext context, IConfiguration configuration, IPermissionService permissionService)
     {
         _context = context;
         _configuration = configuration;
+        _permissionService = permissionService;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -62,6 +64,9 @@ public class AuthService : IAuthService
         var accessToken = GenerateAccessToken(user);
         var refreshToken = await GenerateRefreshTokenAsync(user.Id);
 
+        // Load user permissions
+        var permissions = await _permissionService.GetUserPermissionsAsync(user.Id);
+
         return new LoginResponse
         {
             AccessToken = accessToken,
@@ -74,7 +79,8 @@ public class AuthService : IAuthService
                 Email = user.Email,
                 FullName = user.FullName,
                 Role = user.Role
-            }
+            },
+            Permissions = permissions
         };
     }
 
@@ -100,6 +106,9 @@ public class AuthService : IAuthService
 
         await _context.SaveChangesAsync();
 
+        // Load user permissions
+        var permissions = await _permissionService.GetUserPermissionsAsync(token.User.Id);
+
         return new LoginResponse
         {
             AccessToken = newAccessToken,
@@ -112,19 +121,20 @@ public class AuthService : IAuthService
                 Email = token.User.Email,
                 FullName = token.User.FullName,
                 Role = token.User.Role
-            }
+            },
+            Permissions = permissions
         };
     }
 
-    public async Task<bool> ForgotPasswordAsync(string email)
+    public async Task<string> ForgotPasswordAsync(string email)
     {
         var user = await _context.Users
             .FirstOrDefaultAsync(u => u.Email == email && !u.IsDeleted);
 
         if (user == null)
         {
-            // Don't reveal if email exists for security
-            return true;
+            // Don't reveal if email exists for security - return empty token
+            return string.Empty;
         }
 
         var token = GeneratePasswordResetToken();
@@ -140,9 +150,8 @@ public class AuthService : IAuthService
         await _context.SaveChangesAsync();
 
         // TODO: Send email with reset link
-        // await _emailService.SendPasswordResetEmailAsync(user.Email, token);
-
-        return true;
+        // For now, return token directly (temporary solution)
+        return token;
     }
 
     public async Task<bool> ResetPasswordAsync(string token, string newPassword)

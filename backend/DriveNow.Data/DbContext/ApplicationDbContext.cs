@@ -15,6 +15,8 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
+    public DbSet<Permission> Permissions { get; set; }
+    public DbSet<RolePermission> RolePermissions { get; set; }
 
     // Master Data
     public DbSet<VehicleType> VehicleTypes { get; set; }
@@ -68,6 +70,22 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
             entity.HasOne(e => e.User)
                   .WithMany(e => e.PasswordResetTokens)
                   .HasForeignKey(e => e.UserId)
+                  .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Permission configuration
+        modelBuilder.Entity<Permission>(entity =>
+        {
+            entity.HasIndex(e => e.Key).IsUnique();
+        });
+
+        // RolePermission configuration
+        modelBuilder.Entity<RolePermission>(entity =>
+        {
+            entity.HasIndex(e => new { e.Role, e.PermissionId }).IsUnique();
+            entity.HasOne(e => e.Permission)
+                  .WithMany(e => e.RolePermissions)
+                  .HasForeignKey(e => e.PermissionId)
                   .OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -125,7 +143,7 @@ public class ApplicationDbContext : Microsoft.EntityFrameworkCore.DbContext
                   .OnDelete(DeleteBehavior.Restrict);
 
             entity.HasOne(e => e.RentalOrder)
-                  .WithMany()
+                  .WithMany(e => e.Invoices)
                   .HasForeignKey(e => e.RentalOrderId)
                   .OnDelete(DeleteBehavior.Restrict);
 

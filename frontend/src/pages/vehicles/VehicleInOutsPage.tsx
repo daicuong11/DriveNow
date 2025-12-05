@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Modal, Form, Popconfirm, Badge, DatePicker } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs, { Dayjs } from 'dayjs'
@@ -38,6 +40,9 @@ interface PagedResult<T> {
 }
 
 const VehicleInOutsPage = () => {
+  const canCreate = useHasPermission('vehicles.inout')
+  const canEdit = useHasPermission('vehicles.inout')
+  const canDelete = useHasPermission('vehicles.inout')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form] = Form.useForm()
@@ -309,10 +314,12 @@ const VehicleInOutsPage = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-            <Button type='link' danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canEdit && <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />}
+          {canDelete && (
+            <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
+              <Button type='link' danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -341,7 +348,7 @@ const VehicleInOutsPage = () => {
             style={{ width: 250 }}
           />
           <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-          <ActionSelect onAdd={handleAdd} onDelete={() => {}} deleteDisabled={true} />
+          {canCreate && <ActionSelect onAdd={handleAdd} onDelete={() => {}} deleteDisabled={true} />}
         </Space>
       </div>
 

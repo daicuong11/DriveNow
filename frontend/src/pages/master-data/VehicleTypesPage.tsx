@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Modal, Form, Popconfirm, Badge, message } from 'antd'
 import { showSuccess, showError } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -34,6 +36,11 @@ interface PagedResult<T> {
 }
 
 const VehicleTypesPage = () => {
+  const canCreate = useHasPermission('masterdata.create')
+  const canEdit = useHasPermission('masterdata.edit')
+  const canDelete = useHasPermission('masterdata.delete')
+  const canImport = useHasPermission('masterdata.import')
+  const canExport = useHasPermission('masterdata.export')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form] = Form.useForm()
@@ -140,7 +147,7 @@ const VehicleTypesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicleTypes'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo mới thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo mới thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -158,7 +165,7 @@ const VehicleTypesPage = () => {
       queryClient.invalidateQueries({ queryKey: ['vehicleTypes'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -171,8 +178,8 @@ const VehicleTypesPage = () => {
       showSuccess('Xóa loại xe thành công!')
       queryClient.invalidateQueries({ queryKey: ['vehicleTypes'] })
     },
-    onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+    onError: (error: any) => {
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -308,7 +315,7 @@ const VehicleTypesPage = () => {
         setImportResult({
           open: true,
           success: false,
-          message: error.response?.data?.message || error.message || 'Import thất bại!',
+          message: getErrorMessage(error, 'Import thất bại!'),
           totalRows: 0,
           successCount: 0,
           errors: []
@@ -337,7 +344,7 @@ const VehicleTypesPage = () => {
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: { message?: string } } }
-        showError(axiosError.response?.data?.message || 'Xóa thất bại. Vui lòng thử lại!')
+        showError(getErrorMessage(axiosError, 'Xóa thất bại. Vui lòng thử lại!'))
       } else {
         showError('Xóa thất bại. Vui lòng thử lại!')
       }
@@ -396,11 +403,13 @@ const VehicleTypesPage = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />
-          <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-            <Button type='link' danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canEdit && <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />}
+          {canCreate && <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />}
+          {canDelete && (
+            <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
+              <Button type='link' danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -430,19 +439,23 @@ const VehicleTypesPage = () => {
             style={{ width: 250 }}
           />
           <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-          <ImportButton onImport={handleImport} loading={isImporting} />
-          <ExportButton
-            selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
-            apiEndpoint='/VehicleTypes/export'
-            filename='VehicleType'
-            loading={false}
-            disabled={false}
-          />
-          <ActionSelect
-            onAdd={handleAdd}
-            onDelete={handleDeleteMultiple}
-            deleteDisabled={selectedRowKeys.length === 0}
-          />
+          {canImport && <ImportButton onImport={handleImport} loading={isImporting} />}
+          {canExport && (
+            <ExportButton
+              selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
+              apiEndpoint='/VehicleTypes/export'
+              filename='VehicleType'
+              loading={false}
+              disabled={false}
+            />
+          )}
+          {(canCreate || canDelete) && (
+            <ActionSelect
+              onAdd={canCreate ? handleAdd : undefined}
+              onDelete={canDelete ? handleDeleteMultiple : undefined}
+              deleteDisabled={selectedRowKeys.length === 0}
+            />
+          )}
         </Space>
       </div>
 

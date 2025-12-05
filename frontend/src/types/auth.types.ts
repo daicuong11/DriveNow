@@ -9,6 +9,7 @@ export interface LoginResponse {
   refreshToken: string;
   expiresIn: number;
   user: User;
+  permissions: string[];
 }
 
 export interface User {

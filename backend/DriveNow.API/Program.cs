@@ -75,6 +75,8 @@ builder.Services.AddScoped<DriveNow.Business.Interfaces.IPromotionService, Drive
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IRentalOrderService, DriveNow.Business.Services.RentalOrderService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IInvoiceService, DriveNow.Business.Services.InvoiceService>();
 builder.Services.AddScoped<DriveNow.Business.Interfaces.IPaymentService, DriveNow.Business.Services.PaymentService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IUserService, DriveNow.Business.Services.UserService>();
+builder.Services.AddScoped<DriveNow.Business.Interfaces.IPermissionService, DriveNow.Business.Services.PermissionService>();
 
 // SignalR
 builder.Services.AddSignalR();
@@ -198,14 +200,34 @@ builder.Host.UseSerilog((context, services, configuration) => configuration
 
 var app = builder.Build();
 
-// Seed data
+// Apply migrations and seed data
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     try
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        // Apply pending migrations
+        await context.Database.MigrateAsync();
+        
+        // Seed data
         await DriveNow.Data.Seed.DataSeeder.SeedAsync(context);
+        
+        // Seed permissions separately (after services are registered)
+        var permissionService = services.GetService<DriveNow.Business.Interfaces.IPermissionService>();
+        if (permissionService != null)
+        {
+            try
+            {
+                await permissionService.SeedDefaultPermissionsAsync();
+            }
+            catch (Exception ex)
+            {
+                var logger = services.GetRequiredService<ILogger<Program>>();
+                logger.LogWarning(ex, "Could not seed permissions. This is normal if tables don't exist yet.");
+            }
+        }
     }
     catch (Exception ex)
     {

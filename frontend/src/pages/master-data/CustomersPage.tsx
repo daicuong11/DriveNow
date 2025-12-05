@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Modal, Form, Popconfirm, Badge, DatePicker, Radio } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import dayjs, { Dayjs } from 'dayjs'
@@ -39,6 +41,11 @@ interface PagedResult<T> {
 }
 
 const CustomersPage = () => {
+  const canCreate = useHasPermission('masterdata.create')
+  const canEdit = useHasPermission('masterdata.edit')
+  const canDelete = useHasPermission('masterdata.delete')
+  const canImport = useHasPermission('masterdata.import')
+  const canExport = useHasPermission('masterdata.export')
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [form] = Form.useForm()
@@ -137,7 +144,7 @@ const CustomersPage = () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo mới thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo mới thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -154,7 +161,7 @@ const CustomersPage = () => {
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -166,8 +173,8 @@ const CustomersPage = () => {
       showSuccess('Xóa khách hàng thành công!')
       queryClient.invalidateQueries({ queryKey: ['customers'] })
     },
-    onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+    onError: (error: any) => {
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -322,7 +329,7 @@ const CustomersPage = () => {
     } catch (error: unknown) {
       if (error && typeof error === 'object' && 'response' in error) {
         const axiosError = error as { response?: { data?: { message?: string } } }
-        showError(axiosError.response?.data?.message || 'Xóa thất bại. Vui lòng thử lại!')
+        showError(getErrorMessage(axiosError, 'Xóa thất bại. Vui lòng thử lại!'))
       } else {
         showError('Xóa thất bại. Vui lòng thử lại!')
       }
@@ -395,11 +402,13 @@ const CustomersPage = () => {
       fixed: 'right',
       render: (_, record) => (
         <Space>
-          <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />
-          <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-            <Button type='link' danger icon={<DeleteOutlined />} />
-          </Popconfirm>
+          {canEdit && <Button type='link' icon={<EditOutlined />} onClick={() => handleEdit(record)} />}
+          {canCreate && <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record)} />}
+          {canDelete && (
+            <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
+              <Button type='link' danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -428,19 +437,23 @@ const CustomersPage = () => {
             style={{ width: 250 }}
           />
           <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-          <ImportButton onImport={handleImport} loading={isImporting} />
-          <ExportButton
-            selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
-            apiEndpoint='/Customers/export'
-            filename='Customer'
-            loading={false}
-            disabled={false}
-          />
-          <ActionSelect
-            onAdd={handleAdd}
-            onDelete={handleDeleteMultiple}
-            deleteDisabled={selectedRowKeys.length === 0}
-          />
+          {canImport && <ImportButton onImport={handleImport} loading={isImporting} />}
+          {canExport && (
+            <ExportButton
+              selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
+              apiEndpoint='/Customers/export'
+              filename='Customer'
+              loading={false}
+              disabled={false}
+            />
+          )}
+          {(canCreate || canDelete) && (
+            <ActionSelect
+              onAdd={canCreate ? handleAdd : undefined}
+              onDelete={canDelete ? handleDeleteMultiple : undefined}
+              deleteDisabled={selectedRowKeys.length === 0}
+            />
+          )}
         </Space>
       </div>
 

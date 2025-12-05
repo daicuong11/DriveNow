@@ -32,7 +32,8 @@ const Login = () => {
         setCredentials({
           user: response.user,
           accessToken: response.accessToken,
-          refreshToken: response.refreshToken
+          refreshToken: response.refreshToken,
+          permissions: response.permissions || []
         })
       )
 
@@ -193,7 +194,7 @@ const Login = () => {
                 href='#'
                 onClick={(e) => {
                   e.preventDefault()
-                  // TODO: Implement forgot password
+                  navigate('/forgot-password')
                 }}
                 className='text-sm text-blue-600 hover:text-blue-700 transition-colors'
               >

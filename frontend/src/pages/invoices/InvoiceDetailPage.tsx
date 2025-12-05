@@ -3,7 +3,9 @@ import { useParams, useNavigate, useLocation, useSearchParams } from 'react-rout
 import { Button, Form, Input, DatePicker, Tabs, Space, Card, Row, Col, Divider, App, Modal, Select, Tag, Table } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, DeleteOutlined, CopyOutlined, DollarOutlined } from '@ant-design/icons'
 import { showSuccess, showError } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import dayjs from 'dayjs'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -66,6 +68,8 @@ const InvoiceDetailPage = () => {
   const location = useLocation()
   const [searchParams] = useSearchParams()
   const { modal } = App.useApp()
+  const canEdit = useHasPermission('invoices.edit')
+  const canDelete = useHasPermission('invoices.delete')
   const [form] = Form.useForm()
   const [paymentForm] = Form.useForm()
   const [activeTab, setActiveTab] = useState(searchParams.get('tab') || 'general')
@@ -175,7 +179,7 @@ const InvoiceDetailPage = () => {
       setHasChanges(false)
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -190,7 +194,7 @@ const InvoiceDetailPage = () => {
       navigate('/invoices')
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Xóa thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -205,7 +209,7 @@ const InvoiceDetailPage = () => {
       navigate(`/invoices/${data.id}`)
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo bản sao thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo bản sao thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -234,7 +238,7 @@ const InvoiceDetailPage = () => {
       refetchInvoice()
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Thanh toán thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Thanh toán thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -393,8 +397,8 @@ const InvoiceDetailPage = () => {
     return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>
   }
 
-  // Check if can edit
-  const canEdit = invoice && (invoice.status === 'Unpaid' || invoice.status === 'Partial')
+  // Check if can edit invoice
+  const canEditInvoice = invoice && (invoice.status === 'Unpaid' || invoice.status === 'Partial') && canEdit
 
   // Tabs items
   const tabItems: TabsProps['items'] = [
@@ -403,7 +407,7 @@ const InvoiceDetailPage = () => {
       label: 'Thông tin hóa đơn',
       children: (
         <Card>
-          <Form form={form} layout='vertical' disabled={isLoading || !canEdit} onValuesChange={handleFormValuesChange}>
+          <Form form={form} layout='vertical' disabled={isLoading || !canEditInvoice} onValuesChange={handleFormValuesChange}>
             <Row gutter={24}>
               <Col span={24}>
                 <h3 className='mb-4 text-lg font-semibold'>Thông tin hóa đơn</h3>
@@ -672,7 +676,7 @@ const InvoiceDetailPage = () => {
                   <Button icon={<SaveOutlined />} type='primary' onClick={handleSubmit} loading={updateMutation.isPending}>
                     Lưu
                   </Button>
-                  {invoice.status === 'Unpaid' && (
+                  {invoice.status === 'Unpaid' && canDelete && (
                     <Button icon={<DeleteOutlined />} danger onClick={handleDelete} loading={deleteMutation.isPending}>
                       Xóa
                     </Button>

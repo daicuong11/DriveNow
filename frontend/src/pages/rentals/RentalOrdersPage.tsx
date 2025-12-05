@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Popconfirm, Badge, Tag } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EyeOutlined, SearchOutlined, CopyOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -128,7 +130,7 @@ const RentalOrdersPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -161,7 +163,7 @@ const RentalOrdersPage = () => {
         }
       })
     } catch (error: any) {
-      showError(error.response?.data?.message || 'Không thể tải dữ liệu để copy. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Không thể tải dữ liệu để copy. Vui lòng thử lại!'))
     }
   }
 
@@ -315,7 +317,7 @@ const RentalOrdersPage = () => {
         <Space>
           <Button type='link' icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} title='Xem chi tiết' />
           <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record.id)} title='Tạo bản sao' />
-          {record.status === 'Draft' && (
+          {record.status === 'Draft' && canDelete && (
             <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
               <Button type='link' danger title='Xóa' />
             </Popconfirm>

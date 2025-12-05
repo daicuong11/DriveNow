@@ -3,7 +3,9 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import { Button, Form, Input, DatePicker, Tabs, Space, Card, Row, Col, Divider, App, InputNumber, Tag } from 'antd'
 import { ArrowLeftOutlined, SaveOutlined, DeleteOutlined, CopyOutlined, CheckOutlined, PlayCircleOutlined, StopOutlined, CloseCircleOutlined, FileTextOutlined } from '@ant-design/icons'
 import { showSuccess, showError } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import dayjs from 'dayjs'
 import MasterDataSelect from '../../components/common/MasterDataSelect'
@@ -68,6 +70,7 @@ const RentalOrderDetailPage = () => {
   const navigate = useNavigate()
   const location = useLocation()
   const { modal } = App.useApp()
+  const canDelete = useHasPermission('rentals.delete')
   const [form] = Form.useForm()
   const [activeTab, setActiveTab] = useState('general')
   const [initialValues, setInitialValues] = useState<Record<string, any> | null>(null)
@@ -250,7 +253,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo đơn thuê thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo đơn thuê thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -278,7 +281,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Cập nhật thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Cập nhật thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -295,7 +298,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Xác nhận thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Xác nhận thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -311,7 +314,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Bắt đầu thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Bắt đầu thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -327,7 +330,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Hoàn thành thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Hoàn thành thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -343,7 +346,7 @@ const RentalOrderDetailPage = () => {
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Hủy thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Hủy thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -370,7 +373,7 @@ const RentalOrderDetailPage = () => {
       }
     },
     onError: (error: any) => {
-      showError(error.response?.data?.message || 'Tạo hóa đơn thất bại. Vui lòng thử lại!')
+      showError(getErrorMessage(error, 'Tạo hóa đơn thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -386,8 +389,8 @@ const RentalOrderDetailPage = () => {
       navigate('/rental-orders')
       queryClient.invalidateQueries({ queryKey: ['rentalOrders'] })
     },
-    onError: () => {
-      showError('Xóa thất bại. Vui lòng thử lại!')
+    onError: (error: any) => {
+      showError(getErrorMessage(error, 'Xóa thất bại. Vui lòng thử lại!'))
     }
   })
 
@@ -959,7 +962,7 @@ const RentalOrderDetailPage = () => {
               <Button icon={<CopyOutlined />} onClick={handleCopy}>
                 Tạo bản sao
               </Button>
-              {rentalOrder?.status === 'Draft' && (
+              {rentalOrder?.status === 'Draft' && canDelete && (
                 <Button danger icon={<DeleteOutlined />} onClick={handleDelete} loading={deleteMutation.isPending}>
                   Xóa
                 </Button>

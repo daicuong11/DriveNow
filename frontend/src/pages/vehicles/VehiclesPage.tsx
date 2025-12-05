@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react'
 import { Button, Space, Input, Popconfirm, Badge } from 'antd'
 import { showSuccess, showError, showWarning } from '../../utils/notifications'
+import { getErrorMessage } from '../../utils/errorHandler'
 import { EditOutlined, DeleteOutlined, CopyOutlined, SearchOutlined, EyeOutlined } from '@ant-design/icons'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useHasPermission } from '../../utils/permissions'
 import api from '../../services/api/axios'
 import type { ColumnsType } from 'antd/es/table'
 import RefreshButton from '../../components/common/RefreshButton'
@@ -51,6 +53,11 @@ interface PagedResult<T> {
 
 const VehiclesPage = () => {
   const navigate = useNavigate()
+  const canCreate = useHasPermission('vehicles.create')
+  const canEdit = useHasPermission('vehicles.edit')
+  const canDelete = useHasPermission('vehicles.delete')
+  const canImport = useHasPermission('masterdata.import')
+  const canExport = useHasPermission('masterdata.export')
   const [searchTerm, setSearchTerm] = useState('')
   const [searchInput, setSearchInput] = useState('')
   const debouncedSearchTerm = useDebounce(searchInput, 500)
@@ -413,10 +420,12 @@ const VehiclesPage = () => {
       render: (_, record) => (
         <Space>
           <Button type='link' icon={<EyeOutlined />} onClick={() => handleViewDetail(record.id)} title='Xem chi tiết' />
-          <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record.id)} title='Tạo bản sao' />
-          <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
-            <Button type='link' danger icon={<DeleteOutlined />} title='Xóa' />
-          </Popconfirm>
+          {canCreate && <Button type='link' icon={<CopyOutlined />} onClick={() => handleCopy(record.id)} title='Tạo bản sao' />}
+          {canDelete && (
+            <Popconfirm title='Bạn có chắc chắn muốn xóa?' onConfirm={() => handleDelete(record.id)}>
+              <Button type='link' danger icon={<DeleteOutlined />} title='Xóa' />
+            </Popconfirm>
+          )}
         </Space>
       )
     }
@@ -445,19 +454,23 @@ const VehiclesPage = () => {
             style={{ width: 250 }}
           />
           <RefreshButton onRefresh={handleRefresh} loading={isLoading} />
-          <ImportButton onImport={handleImport} loading={isImporting} title='Import Excel' />
-          <ExportButton
-            selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
-            apiEndpoint='/Vehicles/export'
-            filename='Vehicle'
-            loading={false}
-            disabled={false}
-          />
-          <ActionSelect
-            onAdd={() => navigate('/vehicles/0')}
-            onDelete={handleDeleteMultiple}
-            deleteDisabled={selectedRowKeys.length === 0}
-          />
+          {canImport && <ImportButton onImport={handleImport} loading={isImporting} title='Import Excel' />}
+          {canExport && (
+            <ExportButton
+              selectedIds={selectedRowKeys.length > 0 ? selectedRowKeys.map((key) => Number(key)) : []}
+              apiEndpoint='/Vehicles/export'
+              filename='Vehicle'
+              loading={false}
+              disabled={false}
+            />
+          )}
+          {(canCreate || canDelete) && (
+            <ActionSelect
+              onAdd={canCreate ? () => navigate('/vehicles/0') : undefined}
+              onDelete={canDelete ? handleDeleteMultiple : undefined}
+              deleteDisabled={selectedRowKeys.length === 0}
+            />
+          )}
         </Space>
       </div>
 

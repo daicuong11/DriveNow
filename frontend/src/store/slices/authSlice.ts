@@ -13,6 +13,7 @@ interface AuthState {
   user: User | null
   accessToken: string | null
   refreshToken: string | null
+  permissions: string[]
   isAuthenticated: boolean
   isLoading: boolean
 }
@@ -21,6 +22,7 @@ const initialState: AuthState = {
   user: null,
   accessToken: null,
   refreshToken: null,
+  permissions: [],
   isAuthenticated: false,
   isLoading: true // Start with loading to check persisted auth
 }
@@ -69,10 +71,14 @@ export const restoreAuth = createAsyncThunk('auth/restoreAuth', async (_, { reje
         }
       }
 
+      const savedPermissions = localStorage.getItem('permissions')
+      const permissions = savedPermissions ? JSON.parse(savedPermissions) : []
+      
       return {
         user,
         accessToken,
-        refreshToken
+        refreshToken,
+        permissions
       }
     } catch (error) {
       // Failed to decode token, try to refresh
@@ -83,7 +89,8 @@ export const restoreAuth = createAsyncThunk('auth/restoreAuth', async (_, { reje
         return {
           user: response.user,
           accessToken: response.accessToken,
-          refreshToken: response.refreshToken
+          refreshToken: response.refreshToken,
+          permissions: response.permissions || []
         }
       } catch (refreshError) {
         localStorage.removeItem('accessToken')
@@ -102,25 +109,31 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    setCredentials: (state, action: PayloadAction<{ user: User; accessToken: string; refreshToken: string }>) => {
+    setCredentials: (state, action: PayloadAction<{ user: User; accessToken: string; refreshToken: string; permissions?: string[] }>) => {
       state.user = action.payload.user
       state.accessToken = action.payload.accessToken
       state.refreshToken = action.payload.refreshToken
+      state.permissions = action.payload.permissions || []
       state.isAuthenticated = true
       state.isLoading = false
       // Also save to localStorage
       localStorage.setItem('accessToken', action.payload.accessToken)
       localStorage.setItem('refreshToken', action.payload.refreshToken)
+      if (action.payload.permissions) {
+        localStorage.setItem('permissions', JSON.stringify(action.payload.permissions))
+      }
     },
     logout: (state) => {
       state.user = null
       state.accessToken = null
       state.refreshToken = null
+      state.permissions = []
       state.isAuthenticated = false
       state.isLoading = false
       // Clear localStorage
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
+      localStorage.removeItem('permissions')
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload
@@ -135,6 +148,7 @@ const authSlice = createSlice({
         state.user = action.payload.user
         state.accessToken = action.payload.accessToken
         state.refreshToken = action.payload.refreshToken
+        state.permissions = action.payload.permissions || []
         state.isAuthenticated = true
         state.isLoading = false
       })
@@ -142,6 +156,7 @@ const authSlice = createSlice({
         state.user = null
         state.accessToken = null
         state.refreshToken = null
+        state.permissions = []
         state.isAuthenticated = false
         state.isLoading = false
       })

@@ -6,6 +6,7 @@ public class LoginResponse
     public string RefreshToken { get; set; } = string.Empty;
     public int ExpiresIn { get; set; }
     public UserDto User { get; set; } = null!;
+    public List<string> Permissions { get; set; } = new List<string>();
 }
 
 public class UserDto
