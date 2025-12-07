@@ -221,7 +221,7 @@ public class UserService : IUserService
         return true;
     }
 
-    public async Task<bool> LockAsync(int id)
+    public async Task<UserDto> LockAsync(int id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
         if (user == null)
@@ -233,10 +233,12 @@ public class UserService : IUserService
         user.LockedUntil = DateTime.UtcNow.AddDays(30); // Lock for 30 days
         await _context.SaveChangesAsync();
 
-        return true;
+        // Reload with Employee navigation
+        await _context.Entry(user).Reference(u => u.Employee).LoadAsync();
+        return await GetByIdAsync(id) ?? throw new InvalidOperationException("Không thể lấy thông tin người dùng");
     }
 
-    public async Task<bool> UnlockAsync(int id)
+    public async Task<UserDto> UnlockAsync(int id)
     {
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted);
         if (user == null)
@@ -249,7 +251,9 @@ public class UserService : IUserService
         user.FailedLoginAttempts = 0;
         await _context.SaveChangesAsync();
 
-        return true;
+        // Reload with Employee navigation
+        await _context.Entry(user).Reference(u => u.Employee).LoadAsync();
+        return await GetByIdAsync(id) ?? throw new InvalidOperationException("Không thể lấy thông tin người dùng");
     }
 
     public async Task<bool> ResetPasswordAsync(int id, ResetUserPasswordRequest request)

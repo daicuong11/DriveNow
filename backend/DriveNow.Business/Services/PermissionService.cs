@@ -38,7 +38,7 @@ public class PermissionService : IPermissionService
     public async Task<List<PermissionGroupDto>> GetPermissionGroupsAsync()
     {
         var permissions = await GetAllPermissionsAsync();
-        
+
         var categoryNames = new Dictionary<string, string>
         {
             { "users", "Quản lý Người dùng" },
@@ -69,6 +69,7 @@ public class PermissionService : IPermissionService
             .Include(rp => rp.Permission)
             .Where(rp => rp.Role == role && !rp.IsDeleted && !rp.Permission.IsDeleted)
             .Select(rp => rp.Permission.Key)
+            .Distinct()
             .ToListAsync();
 
         return rolePermissions;
@@ -86,50 +87,63 @@ public class PermissionService : IPermissionService
 
     public async Task UpdateRolePermissionsAsync(string role, List<string> permissionKeys)
     {
-        // Get all existing role permissions for this role
-        var existingRolePermissions = await _context.RolePermissions
+        // Get ALL existing role permissions for this role (including deleted ones)
+        // This is important because unique index doesn't care about IsDeleted
+        var allExistingRolePermissions = await _context.RolePermissions
             .Include(rp => rp.Permission)
-            .Where(rp => rp.Role == role && !rp.IsDeleted)
+            .Where(rp => rp.Role == role)
             .ToListAsync();
 
-        // Get all permissions
-        var allPermissions = await _context.Permissions
+        // Get all permissions that should be assigned
+        var permissionsToAssign = await _context.Permissions
             .Where(p => !p.IsDeleted && permissionKeys.Contains(p.Key))
             .ToListAsync();
 
-        // Remove permissions that are not in the new list
-        var permissionsToRemove = existingRolePermissions
-            .Where(rp => !permissionKeys.Contains(rp.Permission.Key))
-            .ToList();
+        // Get permission IDs that should be assigned
+        var permissionIdsToAssign = permissionsToAssign.Select(p => p.Id).ToHashSet();
 
-        foreach (var rp in permissionsToRemove)
+        // Process each permission to assign first (before deleting)
+        foreach (var permission in permissionsToAssign)
         {
-            rp.IsDeleted = true;
-            rp.ModifiedDate = DateTime.UtcNow;
-            rp.ModifiedBy = "System";
+            // Check if RolePermission already exists (even if deleted)
+            var existingRolePermission = allExistingRolePermissions
+                .FirstOrDefault(rp => rp.PermissionId == permission.Id);
+
+            if (existingRolePermission != null)
+            {
+                // If it exists but is deleted, restore it
+                if (existingRolePermission.IsDeleted)
+                {
+                    existingRolePermission.IsDeleted = false;
+                    existingRolePermission.ModifiedDate = DateTime.UtcNow;
+                    existingRolePermission.ModifiedBy = "System";
+                }
+                // If it's already active, do nothing
+            }
+            else
+            {
+                // Create new RolePermission only if it doesn't exist at all
+                var rolePermission = new RolePermission
+                {
+                    Role = role,
+                    PermissionId = permission.Id,
+                    CreatedDate = DateTime.UtcNow,
+                    CreatedBy = "System",
+                    IsDeleted = false
+                };
+                _context.RolePermissions.Add(rolePermission);
+            }
         }
 
-        // Add new permissions
-        var existingKeys = existingRolePermissions
-            .Where(rp => !rp.IsDeleted)
-            .Select(rp => rp.Permission.Key)
+        // Hard delete permissions that are not in the new list (both active and deleted)
+        // Do this after processing permissions to assign to avoid conflicts
+        var permissionsToRemove = allExistingRolePermissions
+            .Where(rp => !permissionIdsToAssign.Contains(rp.PermissionId))
             .ToList();
 
-        var permissionsToAdd = allPermissions
-            .Where(p => !existingKeys.Contains(p.Key))
-            .ToList();
-
-        foreach (var permission in permissionsToAdd)
+        if (permissionsToRemove.Any())
         {
-            var rolePermission = new RolePermission
-            {
-                Role = role,
-                PermissionId = permission.Id,
-                CreatedDate = DateTime.UtcNow,
-                CreatedBy = "System",
-                IsDeleted = false
-            };
-            _context.RolePermissions.Add(rolePermission);
+            _context.RolePermissions.RemoveRange(permissionsToRemove);
         }
 
         await _context.SaveChangesAsync();

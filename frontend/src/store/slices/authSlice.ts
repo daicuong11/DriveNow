@@ -137,6 +137,10 @@ const authSlice = createSlice({
     },
     setLoading: (state, action: PayloadAction<boolean>) => {
       state.isLoading = action.payload
+    },
+    updatePermissions: (state, action: PayloadAction<string[]>) => {
+      state.permissions = action.payload
+      localStorage.setItem('permissions', JSON.stringify(action.payload))
     }
   },
   extraReducers: (builder) => {
@@ -163,5 +167,5 @@ const authSlice = createSlice({
   }
 })
 
-export const { setCredentials, logout, setLoading } = authSlice.actions
+export const { setCredentials, logout, setLoading, updatePermissions } = authSlice.actions
 export default authSlice.reducer

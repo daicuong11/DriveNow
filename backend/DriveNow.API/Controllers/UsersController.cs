@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using DriveNow.Business.DTOs.Common;
 using DriveNow.Business.DTOs.User;
 using DriveNow.Business.Interfaces;
+using DriveNow.API.Hubs;
 
 namespace DriveNow.API.Controllers;
 
@@ -17,11 +19,13 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _service;
     private readonly ILogger<UsersController> _logger;
+    private readonly IHubContext<UserHub> _hubContext;
 
-    public UsersController(IUserService service, ILogger<UsersController> logger)
+    public UsersController(IUserService service, ILogger<UsersController> logger, IHubContext<UserHub> hubContext)
     {
         _service = service;
         _logger = logger;
+        _hubContext = hubContext;
     }
 
     /// <summary>
@@ -130,7 +134,24 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _service.LockAsync(id);
+            var user = await _service.LockAsync(id);
+            
+            // Notify all users in the users_list group about the lock
+            await _hubContext.Clients.Group("users_list").SendAsync("UserUpdated", new
+            {
+                userId = id,
+                isLocked = true,
+                lockedUntil = user.LockedUntil,
+                isActive = user.IsActive
+            });
+            
+            // Also notify the specific user if they are online
+            await _hubContext.Clients.Group($"user_{id}").SendAsync("AccountLocked", new
+            {
+                userId = id,
+                lockedUntil = user.LockedUntil
+            });
+            
             return Ok(new { success = true, message = "Khóa tài khoản thành công!" });
         }
         catch (KeyNotFoundException ex)
@@ -152,7 +173,24 @@ public class UsersController : ControllerBase
     {
         try
         {
-            await _service.UnlockAsync(id);
+            var user = await _service.UnlockAsync(id);
+            
+            // Notify all users in the users_list group about the unlock (for Admin UI refresh)
+            await _hubContext.Clients.Group("users_list").SendAsync("UserUpdated", new
+            {
+                userId = id,
+                isLocked = false,
+                lockedUntil = (DateTime?)null,
+                isActive = user.IsActive
+            });
+            
+            // Notify the specific user if they are online (optional - can inform user)
+            await _hubContext.Clients.Group($"user_{id}").SendAsync("AccountUnlocked", new
+            {
+                userId = id,
+                message = "Tài khoản của bạn đã được mở khóa"
+            });
+            
             return Ok(new { success = true, message = "Mở khóa tài khoản thành công!" });
         }
         catch (KeyNotFoundException ex)

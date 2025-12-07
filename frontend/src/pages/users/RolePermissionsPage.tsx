@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'
-import { Card, Checkbox, Button, Space, Divider, Typography, Row, Col, message } from 'antd'
+import { useState, useEffect, useCallback } from 'react'
+import { Card, Checkbox, Button, Space, Typography, Row, Col } from 'antd'
 import { SaveOutlined, ArrowLeftOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useSelector } from 'react-redux'
 import type { RootState } from '../../store/store'
 import { showSuccess, showError } from '../../utils/notifications'
 import { getErrorMessage } from '../../utils/errorHandler'
-import { permissionService, type PermissionGroup } from '../../services/api/permission.service'
+import { permissionService } from '../../services/api/permission.service'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 const { Title, Text } = Typography
@@ -141,12 +141,13 @@ const legacyDefaultRolePermissions: Record<string, string[]> = {
     'reports.export'
   ],
   Employee: [
-    // Limited permissions
+    // Limited permissions (default for Employee role)
     'masterdata.view',
     'vehicles.view',
     'vehicles.inout',
     'rentals.view',
     'rentals.create',
+    'rentals.edit',
     'rentals.confirm',
     'rentals.start',
     'rentals.complete',
@@ -182,21 +183,37 @@ const RolePermissionsPage = () => {
     enabled: true
   })
 
+  // Track original permissions from server to detect unsaved changes
+  const [originalPermissions, setOriginalPermissions] = useState<Record<string, string[]>>({
+    Admin: [],
+    Employee: []
+  })
+
   // Update local state when data loads
   useEffect(() => {
     if (adminPermissions) {
-      setPermissions(prev => ({
+      const adminPerms = adminPermissions.permissionKeys
+      setPermissions((prev) => ({
         ...prev,
-        Admin: adminPermissions.permissionKeys
+        Admin: adminPerms
+      }))
+      setOriginalPermissions((prev) => ({
+        ...prev,
+        Admin: [...adminPerms]
       }))
     }
   }, [adminPermissions])
 
   useEffect(() => {
     if (employeePermissions) {
-      setPermissions(prev => ({
+      const employeePerms = employeePermissions.permissionKeys
+      setPermissions((prev) => ({
         ...prev,
-        Employee: employeePermissions.permissionKeys
+        Employee: employeePerms
+      }))
+      setOriginalPermissions((prev) => ({
+        ...prev,
+        Employee: [...employeePerms]
       }))
     }
   }, [employeePermissions])
@@ -212,10 +229,49 @@ const RolePermissionsPage = () => {
       // Reload permissions after save
       queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] })
     },
-    onError: (error: any) => {
+    onError: (error: unknown) => {
       showError(getErrorMessage(error, 'Lưu phân quyền thất bại. Vui lòng thử lại!'))
     }
   })
+
+  const handleSave = useCallback(() => {
+    const permissionKeys = permissions[selectedRole] || []
+    saveMutation.mutate(
+      {
+        role: selectedRole,
+        permissionKeys
+      },
+      {
+        onSuccess: () => {
+          // Update original permissions after save
+          setOriginalPermissions((prev) => ({
+            ...prev,
+            [selectedRole]: [...permissionKeys]
+          }))
+        }
+      }
+    )
+  }, [selectedRole, permissions, saveMutation])
+
+  // Handle Ctrl+S / Cmd+S to save
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault()
+        const currentPerms = permissions[selectedRole] || []
+        const originalPerms = originalPermissions[selectedRole] || []
+        const hasChanges = JSON.stringify([...currentPerms].sort()) !== JSON.stringify([...originalPerms].sort())
+        if (!saveMutation.isPending && hasChanges) {
+          handleSave()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [saveMutation.isPending, selectedRole, permissions, originalPermissions, handleSave])
 
   // Only Admin can access
   if (userRole !== 'Admin') {
@@ -275,21 +331,22 @@ const RolePermissionsPage = () => {
     })
   }
 
-  const handleSave = async () => {
-    const permissionKeys = permissions[selectedRole] || []
-    saveMutation.mutate({
-      role: selectedRole,
-      permissionKeys
-    })
-  }
-
   const handleReset = () => {
-    // Reload from server
-    queryClient.invalidateQueries({ queryKey: ['rolePermissions', selectedRole] })
-    showSuccess('Đã khôi phục phân quyền từ server!')
+    // Reset to default permissions (only in local state, not saved yet)
+    const defaultPermissions = legacyDefaultRolePermissions[selectedRole] || []
+    setPermissions((prev) => ({
+      ...prev,
+      [selectedRole]: [...defaultPermissions]
+    }))
+    // showSuccess('Đã khôi phục phân quyền mặc định (chưa lưu). Nhấn "Lưu phân quyền" để áp dụng!')
   }
 
   const currentPermissions = permissions[selectedRole] || []
+  const originalRolePermissions = originalPermissions[selectedRole] || []
+
+  // Check if there are unsaved changes
+  const hasUnsavedChanges =
+    JSON.stringify([...currentPermissions].sort()) !== JSON.stringify([...originalRolePermissions].sort())
 
   return (
     <div>
@@ -299,7 +356,7 @@ const RolePermissionsPage = () => {
             Quay lại
           </Button>
           <Title level={2} style={{ margin: 0 }}>
-            Phân quyền theo Vai trò
+            Phân quyền theo Vai trò{hasUnsavedChanges ? ' (*)' : ''}
           </Title>
         </div>
         <Space>
@@ -313,10 +370,7 @@ const RolePermissionsPage = () => {
       <Card style={{ marginBottom: 24 }}>
         <Space>
           <Text strong>Chọn vai trò:</Text>
-          <Button
-            type={selectedRole === 'Admin' ? 'primary' : 'default'}
-            onClick={() => setSelectedRole('Admin')}
-          >
+          <Button type={selectedRole === 'Admin' ? 'primary' : 'default'} onClick={() => setSelectedRole('Admin')}>
             Quản trị viên (Admin)
           </Button>
           <Button
@@ -338,7 +392,10 @@ const RolePermissionsPage = () => {
               key={groupIndex}
               title={
                 <div className='flex items-center justify-between'>
-                  <span>{group.title}</span>
+                  <span>
+                    {group.title} ({group.permissions.filter((perm) => currentPermissions.includes(perm.key)).length}/
+                    {group.permissions.length})
+                  </span>
                   <Checkbox
                     checked={allChecked}
                     indeterminate={someChecked && !allChecked}
@@ -374,14 +431,12 @@ const RolePermissionsPage = () => {
       ) : (
         <Card>
           <div style={{ textAlign: 'center', padding: 20 }}>
-            {(loadingAdmin || loadingEmployee) ? 'Đang tải...' : 'Chưa có dữ liệu phân quyền.'}
+            {loadingAdmin || loadingEmployee ? 'Đang tải...' : 'Chưa có dữ liệu phân quyền.'}
           </div>
         </Card>
       )}
-
     </div>
   )
 }
 
 export default RolePermissionsPage
-

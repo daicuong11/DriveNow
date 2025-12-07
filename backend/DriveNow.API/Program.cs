@@ -135,13 +135,40 @@ builder.Services.AddAuthentication(options =>
         },
         OnMessageReceived = context =>
         {
-            // Allow token from query string (for SignalR, etc.)
-            var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
-            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/api"))
+            
+            // For SignalR hubs, check query string first (SignalR sends token in query string)
+            if (path.StartsWithSegments("/hubs"))
             {
-                context.Token = accessToken;
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    context.Token = accessToken;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
             }
+            
+            // For API paths, also check query string
+            if (path.StartsWithSegments("/api"))
+            {
+                var accessToken = context.Request.Query["access_token"];
+                if (!string.IsNullOrEmpty(accessToken))
+                {
+                    context.Token = accessToken;
+                    return System.Threading.Tasks.Task.CompletedTask;
+                }
+            }
+            
+            // Fallback to Authorization header if no token in query string
+            if (string.IsNullOrEmpty(context.Token))
+            {
+                var authHeader = context.Request.Headers["Authorization"].ToString();
+                if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                }
+            }
+            
             return System.Threading.Tasks.Task.CompletedTask;
         }
     };
@@ -149,7 +176,7 @@ builder.Services.AddAuthentication(options =>
 
 builder.Services.AddAuthorization();
 
-// CORS
+// CORS - Must allow WebSocket connections
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp", policy =>
@@ -292,11 +319,14 @@ app.UseMiddleware<DriveNow.API.Middleware.RequestLoggingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// SignalR hubs must be mapped AFTER UseAuthentication/UseAuthorization
+// to ensure JWT token from query string is properly validated
+app.MapHub<DriveNow.API.Hubs.VehicleHub>("/hubs/vehicle");
+app.MapHub<DriveNow.API.Hubs.PermissionHub>("/hubs/permission");
+app.MapHub<DriveNow.API.Hubs.UserHub>("/hubs/user");
+
 // Exception handling middleware (should be after authentication/authorization)
 app.UseMiddleware<DriveNow.API.Middleware.ExceptionHandlingMiddleware>();
-
-// SignalR
-app.MapHub<DriveNow.API.Hubs.VehicleHub>("/hubs/vehicle");
 
 // Map controllers - ImagesController has [AllowAnonymous] so it should work
 app.MapControllers();

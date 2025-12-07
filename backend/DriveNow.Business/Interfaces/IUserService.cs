@@ -10,8 +10,8 @@ public interface IUserService
     Task<UserDto> CreateAsync(CreateUserRequest request);
     Task<UserDto> UpdateAsync(int id, UpdateUserRequest request);
     Task<bool> DeleteAsync(int id);
-    Task<bool> LockAsync(int id);
-    Task<bool> UnlockAsync(int id);
+    Task<UserDto> LockAsync(int id);
+    Task<UserDto> UnlockAsync(int id);
     Task<bool> ResetPasswordAsync(int id, ResetUserPasswordRequest request);
 }
 
